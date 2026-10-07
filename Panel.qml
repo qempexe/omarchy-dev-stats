@@ -22,6 +22,8 @@ Panel {
   readonly property bool hasData: result !== null && result !== undefined && result.error === undefined
   readonly property var grid: Model.buildGrid(hasData ? result.days : ({}), new Date(), year)
 
+  readonly property var palette: store ? store.palette : Model.palette("")
+
   readonly property real prefCell: Style.space(10)
   readonly property real gap: Style.space(3)
   readonly property real labelWidth: Style.space(30)
@@ -38,7 +40,7 @@ Panel {
 
   function levelColor(level) {
     if (level <= 0) return Qt.alpha(root.barForeground, 0.12)
-    return ["#0e4429", "#006d32", "#26a641", "#39d353"][level - 1]
+    return root.palette[level - 1]
   }
 
   function updatedText() {
@@ -265,6 +267,93 @@ Panel {
                 }
               }
             }
+          }
+        }
+
+        // ---- grid color ---------------------------------------------------
+        Row {
+          x: root.labelWidth
+          width: parent.width - root.labelWidth
+          spacing: Style.space(6)
+
+          Text {
+            anchors.verticalCenter: parent.verticalCenter
+            text: "Color"
+            textFormat: Text.PlainText
+            color: root.dim
+            font.family: root.bar ? root.bar.fontFamily : Style.font.family
+            font.pixelSize: root.smallFont
+          }
+
+          Repeater {
+            model: Model.PRESET_COLORS
+
+            Rectangle {
+              id: swatch
+              required property var modelData
+              anchors.verticalCenter: parent.verticalCenter
+              width: root.cell + Style.space(2)
+              height: root.cell + Style.space(2)
+              radius: Style.space(2)
+              color: swatch.modelData.hex
+              border.width: root.store && root.store.gridColor === swatch.modelData.hex ? 2 : 0
+              border.color: root.barForeground
+
+              MouseArea {
+                anchors.fill: parent
+                cursorShape: Qt.PointingHandCursor
+                onClicked: if (root.store) root.store.setGridColor(swatch.modelData.hex)
+              }
+            }
+          }
+
+          Rectangle {
+            id: hexBox
+            anchors.verticalCenter: parent.verticalCenter
+            width: Style.space(64)
+            height: hexField.implicitHeight + Style.space(4)
+            radius: Style.space(4)
+            color: Qt.alpha(root.barForeground, 0.06)
+            border.width: 1
+            border.color: Qt.alpha(root.barForeground, 0.25)
+
+            TextInput {
+              id: hexField
+              anchors.fill: parent
+              anchors.leftMargin: Style.space(5)
+              anchors.rightMargin: Style.space(5)
+              verticalAlignment: TextInput.AlignVCenter
+              text: root.store ? root.store.gridColor : ""
+              maximumLength: 7
+              selectByMouse: true
+              color: root.barForeground
+              font.family: root.bar ? root.bar.fontFamily : Style.font.family
+              font.pixelSize: root.smallFont
+              // Enter applies a typed value; anything not #rrggbb falls back to green.
+              onAccepted: if (root.store) root.store.setGridColor(text)
+            }
+          }
+
+          Text {
+            anchors.verticalCenter: parent.verticalCenter
+            text: "Reset"
+            textFormat: Text.PlainText
+            color: root.barForeground
+            font.family: root.bar ? root.bar.fontFamily : Style.font.family
+            font.pixelSize: root.smallFont
+            font.underline: true
+
+            MouseArea {
+              anchors.fill: parent
+              cursorShape: Qt.PointingHandCursor
+              onClicked: if (root.store) root.store.setGridColor(Model.DEFAULT_COLOR)
+            }
+          }
+
+          // Keep the typed field in step when a swatch or Reset changes the color.
+          Connections {
+            target: root.store
+            function onGridColorChanged() { hexField.text = root.store.gridColor }
           }
         }
 

@@ -24,6 +24,9 @@ BarWidget {
     String(Qt.resolvedUrl("bin/dev-stats.sh")).replace(/^file:\/\//, ""))
 
   readonly property var current: accounts.length > selected ? accounts[selected] : null
+  // Grid color, picked in the panel and saved to ~/.config/dev-stats/color.
+  property string gridColor: Model.DEFAULT_COLOR
+  readonly property var palette: Model.palette(gridColor)
   // Last 7 days (today last) for the bar squares; dim placeholders until data arrives.
   // Newest `n` visible cells of the grid, oldest first. Built here from
   // grid.cols only, so the bar does not depend on any newer helper in Stats.js.
@@ -52,6 +55,15 @@ BarWidget {
   readonly property bool popoutSwitchClosing: panelLoader.item
     ? panelLoader.item.popoutSwitchClosing === true
     : false
+
+  function setGridColor(value) {
+    var c = Model.validColor(value)
+    gridColor = c
+    saveColorProc.command = ["bash", "-c",
+      'd="${XDG_CONFIG_HOME:-$HOME/.config}/dev-stats"; mkdir -p "$d" && printf "%s\\n" "$1" > "$d/color"',
+      "_", c]
+    saveColorProc.running = true
+  }
 
   function open() {
     if (panelLoader.item) panelLoader.item.open()
@@ -157,6 +169,14 @@ BarWidget {
     stepTimer.restart()
   }
 
+  Process { id: saveColorProc }
+
+  Process {
+    id: loadColorProc
+    command: ["bash", "-c", 'cat "${XDG_CONFIG_HOME:-$HOME/.config}/dev-stats/color" 2>/dev/null || true']
+    stdout: StdioCollector { onStreamFinished: root.gridColor = Model.validColor(text.trim()) }
+  }
+
   Process {
     id: listProc
     command: ["bash", root.scriptPath, "list"]
@@ -188,6 +208,8 @@ BarWidget {
     triggeredOnStart: true
     onTriggered: root.refresh()
   }
+
+  Component.onCompleted: loadColorProc.running = true
 
   // Fixed width: does not depend on the Repeater having populated the Row yet.
   implicitWidth: dsIcon + 7 * dsSquare + 7 * dsGap + Style.space(16)
@@ -225,11 +247,15 @@ BarWidget {
   Row {
     id: squares
     anchors.centerIn: parent
+    height: root.height
     spacing: root.dsGap
 
+    // Icon and squares share the row height and are centered on it, so the
+    // whole group sits on the bar's vertical middle.
     Text {
       width: root.dsIcon
-      anchors.verticalCenter: parent.verticalCenter
+      height: squares.height
+      verticalAlignment: Text.AlignVCenter
       horizontalAlignment: Text.AlignHCenter
       text: Model.providerGlyph(root.current ? root.current.provider : "github")
       textFormat: Text.PlainText
@@ -241,14 +267,20 @@ BarWidget {
     Repeater {
       model: root.dsRecent
 
-      Rectangle {
+      Item {
         required property var modelData
         width: root.dsSquare
-        height: root.dsSquare
-        radius: Style.space(2)
-        color: modelData.level <= 0
-          ? Qt.alpha(root.dsFg, 0.18)
-          : ["#0e4429", "#006d32", "#26a641", "#39d353"][modelData.level - 1]
+        height: squares.height
+
+        Rectangle {
+          anchors.centerIn: parent
+          width: root.dsSquare
+          height: root.dsSquare
+          radius: Style.space(2)
+          color: modelData.level <= 0
+            ? Qt.alpha(root.dsFg, 0.18)
+            : root.palette[modelData.level - 1]
+        }
       }
     }
   }

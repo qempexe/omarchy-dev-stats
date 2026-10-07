@@ -35,6 +35,38 @@ function clean(value, max) {
   return s.length > max ? s.slice(0, max) : s
 }
 
+var DEFAULT_COLOR = "#39d353"
+var HEX_COLOR = /^#[0-9a-fA-F]{6}$/
+
+// Returns a valid "#rrggbb" color, or the default green.
+function validColor(value) {
+  return typeof value === "string" && HEX_COLOR.test(value) ? value.toLowerCase() : DEFAULT_COLOR
+}
+
+var PRESET_COLORS = [
+  { name: "Green", hex: "#39d353" },
+  { name: "Blue", hex: "#58a6ff" },
+  { name: "Purple", hex: "#bc8cff" },
+  { name: "Orange", hex: "#ff6b2c" },
+  { name: "Red", hex: "#f85149" },
+  { name: "Yellow", hex: "#e3b341" }
+]
+
+// Darkens a "#rrggbb" color toward black by t (0 = unchanged, 1 = black).
+function shade(hex, t) {
+  var n = parseInt(hex.slice(1), 16)
+  var r = Math.round(((n >> 16) & 255) * (1 - t))
+  var g = Math.round(((n >> 8) & 255) * (1 - t))
+  var b = Math.round((n & 255) * (1 - t))
+  return "#" + ((1 << 24) | (r << 16) | (g << 8) | b).toString(16).slice(1)
+}
+
+// Four intensity levels, least busy first; the last one is the chosen color.
+function palette(value) {
+  var base = validColor(value)
+  return [shade(base, 0.6), shade(base, 0.35), shade(base, 0.15), base]
+}
+
 function providerLabel(p) { return PROVIDERS[p] ? PROVIDERS[p].label : "Unknown" }
 function providerGlyph(p) { return PROVIDERS[p] ? PROVIDERS[p].glyph : "\uf1d3" }
 function errorText(code) { return ERRORS[code] || ERRORS["request-failed"] }

@@ -1,8 +1,8 @@
-# Dev-stats
+# Dev Stats
 
 A contribution-activity grid for the Omarchy bar, in the style of the GitHub profile graph. One widget, several platforms:
 
-![Dev-stats preview](preview.png)
+![Dev-stats preview](preview.png?v=2=1.1.0)
 
 | Platform | Login (once, in a terminal) | Source of the numbers |
 | --- | --- | --- |
@@ -37,12 +37,20 @@ Accounts are found automatically from your existing CLI logins. To add one by ha
 
 `provider` is `github`, `gitlab` or `forgejo` (`gitea` is accepted as an alias).
 
+## Settings
+
+| Setting | Values | Default |
+| --- | --- | --- |
+| `gridColor` | `#rrggbb` hex color | `#39d353` |
+
+Pick the grid color in the panel: click a swatch, type a `#rrggbb` value and press Enter, or Reset. `gridColor` in the table is the color of the busiest days. The quieter levels are darker shades of the same color. An invalid value falls back to the default green.
+
 ## Security and privacy
 
 * The QML code makes no network requests. Fetching happens in `bin/dev-stats.sh`, which runs your own `gh`, `glab` and `curl` as your user.
 * The plugin never reads, prints or stores access tokens. It reads only the host and account names from the CLI config.
 * Host and account names are validated before they reach any command line, and may not start with `-`.
-* No files are written. Results are held in memory only.
+* The only file written is `~/.config/dev-stats/color`, which holds the grid color you pick. Results are held in memory only.
 
 ## Limitations
 

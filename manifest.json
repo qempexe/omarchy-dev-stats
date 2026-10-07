@@ -1,17 +1,33 @@
 {
   "schemaVersion": 1,
   "id": "io.github.qempexe.dev-stats",
-  "name": "Dev-stats",
-  "version": "1.0.0",
+  "name": "Dev Stats",
+  "version": "1.1.0",
   "author": "qempexe",
   "license": "MIT",
   "description": "Contribution activity grid for GitHub, GitLab and Forgejo/Gitea/Codeberg in the Omarchy bar, using your existing gh/glab/tea/fj terminal logins.",
-  "kinds": ["bar-widget"],
-  "entryPoints": { "barWidget": "BarWidget.qml" },
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "BarWidget.qml"
+  },
   "barWidget": {
-    "displayName": "Dev-stats",
+    "displayName": "Dev Stats",
     "category": "Development",
     "allowMultiple": false,
-    "defaultSection": "right"
+    "defaultSection": "right",
+    "defaults": {
+      "gridColor": "#39d353"
+    },
+    "schema": [
+      {
+        "key": "gridColor",
+        "type": "string",
+        "label": "Grid color",
+        "defaultValue": "#39d353",
+        "description": "Hex color (#rrggbb) for the busiest days. Quieter days are darker shades of it."
+      }
+    ]
   }
 }
