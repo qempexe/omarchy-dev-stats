@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "io.github.qempexe.dev-stats",
   "name": "Dev Stats",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "author": "qempexe",
   "license": "MIT",
   "description": "Contribution activity grid for GitHub, GitLab and Forgejo/Gitea/Codeberg in the Omarchy bar, using your existing gh/glab/tea/fj terminal logins.",
@@ -14,19 +14,112 @@
   },
   "barWidget": {
     "displayName": "Dev Stats",
+    "description": "Contribution grid for GitHub, GitLab and Forgejo",
     "category": "Development",
+    "aliases": [
+      "github",
+      "gitlab",
+      "forgejo",
+      "contributions",
+      "commits"
+    ],
     "allowMultiple": false,
     "defaultSection": "right",
     "defaults": {
-      "gridColor": "#39d353"
+      "showIcon": true,
+      "days": 7,
+      "clickAction": "panel",
+      "middleAction": "refresh",
+      "autoRefresh": true,
+      "refreshMinutes": 30,
+      "gridColor": "#39d353",
+      "panelColor": "theme",
+      "panelCustomColor": "#7aa2f7"
     },
     "schema": [
+      {
+        "key": "showIcon",
+        "type": "boolean",
+        "label": "Show platform icon",
+        "defaultValue": true,
+        "description": "The GitHub, GitLab or Forgejo logo before the squares."
+      },
+      {
+        "key": "days",
+        "type": "integer",
+        "label": "Days on the bar",
+        "min": 3,
+        "max": 14,
+        "step": 1,
+        "defaultValue": 7,
+        "description": "How many recent days show as squares."
+      },
+      {
+        "key": "clickAction",
+        "type": "enum",
+        "label": "Left click",
+        "options": [
+          "panel",
+          "refresh",
+          "none"
+        ],
+        "defaultValue": "panel",
+        "description": "What a left click on the widget does. Right click always opens the settings."
+      },
+      {
+        "key": "middleAction",
+        "type": "enum",
+        "label": "Middle click",
+        "options": [
+          "refresh",
+          "panel",
+          "none"
+        ],
+        "defaultValue": "refresh",
+        "description": "What a middle click on the widget does."
+      },
+      {
+        "key": "autoRefresh",
+        "type": "boolean",
+        "label": "Refresh automatically",
+        "defaultValue": true,
+        "description": "Fetch new numbers in the background. Off means only when you ask."
+      },
+      {
+        "key": "refreshMinutes",
+        "type": "integer",
+        "label": "Refresh every",
+        "min": 5,
+        "max": 240,
+        "step": 5,
+        "defaultValue": 30,
+        "description": "Minutes between updates. Each one runs your own gh, glab or curl."
+      },
       {
         "key": "gridColor",
         "type": "string",
         "label": "Grid color",
         "defaultValue": "#39d353",
-        "description": "Hex color (#rrggbb) for the busiest days. Quieter days are darker shades of it."
+        "description": "Color of the busiest days. Quieter days are darker shades of it."
+      },
+      {
+        "key": "panelColor",
+        "type": "enum",
+        "label": "Settings panel colors",
+        "options": [
+          "theme",
+          "custom",
+          "monochrome"
+        ],
+        "defaultValue": "theme",
+        "description": "Colors of this panel. Follow theme brings in your theme's accent."
+      },
+      {
+        "key": "panelCustomColor",
+        "type": "string",
+        "label": "Panel accent color",
+        "defaultValue": "#7aa2f7",
+        "description": "Pick one, or type a hex like #7aa2f7."
       }
     ]
   }

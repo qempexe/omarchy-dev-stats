@@ -9,7 +9,7 @@ BarWidget {
   id: root
   moduleName: "io.github.qempexe.dev-stats"
 
-  // ---- shared state (read by Panel.qml through `store`) -------------------
+  // ---- shared state (read by SettingsPopup.qml through `stats`) -----------
   property var accounts: []
   property var results: ({})
   property int selected: 0
@@ -24,12 +24,31 @@ BarWidget {
     String(Qt.resolvedUrl("bin/dev-stats.sh")).replace(/^file:\/\//, ""))
 
   readonly property var current: accounts.length > selected ? accounts[selected] : null
-  // Grid color, picked in the panel and saved to ~/.config/dev-stats/color.
-  property string gridColor: Model.DEFAULT_COLOR
+
+  // ---- settings: the popup's own edits (store) win over the shell's setting() ----
+  SettingsStore { id: settingsStore }
+
+  function v(key, fallback) {
+    var o = settingsStore.values[key]
+    return o !== undefined ? o : fallback
+  }
+  function clampInt(x, lo, hi, fb) {
+    var n = Math.round(Number(x))
+    return isFinite(n) ? Math.max(lo, Math.min(hi, n)) : fb
+  }
+
+  readonly property bool cfgShowIcon: v("showIcon", setting("showIcon", true)) !== false
+  readonly property int cfgDays: clampInt(v("days", setting("days", 7)), 3, 14, 7)
+  readonly property string cfgClick: String(v("clickAction", setting("clickAction", "panel")))
+  readonly property string cfgMiddle: String(v("middleAction", setting("middleAction", "refresh")))
+  readonly property bool cfgAuto: v("autoRefresh", setting("autoRefresh", true)) !== false
+  readonly property int cfgMinutes: clampInt(v("refreshMinutes", setting("refreshMinutes", 30)), 5, 240, 30)
+  readonly property string gridColor: Model.validColor(String(v("gridColor", setting("gridColor", Model.DEFAULT_COLOR))))
+  readonly property string panelMode: String(v("panelColor", setting("panelColor", "theme")))
+  readonly property string panelAccent: String(v("panelCustomColor", setting("panelCustomColor", "#7aa2f7")))
   readonly property var palette: Model.palette(gridColor)
-  // Last 7 days (today last) for the bar squares; dim placeholders until data arrives.
-  // Newest `n` visible cells of the grid, oldest first. Built here from
-  // grid.cols only, so the bar does not depend on any newer helper in Stats.js.
+
+  // Newest `n` visible cells of the grid, oldest first.
   function lastDays(grid, n) {
     var out = []
     for (var c = grid.cols.length - 1; c >= 0 && out.length < n; c--)
@@ -40,53 +59,40 @@ BarWidget {
 
   readonly property var dsRecent: {
     var res = current ? results[Model.accountKey(current)] : null
-    var days = (res && !res.error) ? lastDays(Model.buildGrid(res.days, new Date()), 7) : []
-    while (days.length < 7) days.unshift({ level: 0, count: 0 })
+    var days = (res && !res.error) ? lastDays(Model.buildGrid(res.days, new Date()), cfgDays) : []
+    while (days.length < cfgDays) days.unshift({ level: 0, count: 0 })
     return days
   }
-  readonly property color dsFg: panelLoader.item ? panelLoader.item.barForeground : "#cccccc"
+  readonly property color dsFg: fgProbe.item ? fgProbe.item.barForeground : "#cccccc"
   readonly property real dsSquare: Style.space(9)
   readonly property real dsGap: Style.space(2)
   readonly property real dsIcon: Style.space(14)
-
-  readonly property bool opened: panelLoader.item
-    ? panelLoader.item.opened === true
-    : false
-  readonly property bool popoutSwitchClosing: panelLoader.item
-    ? panelLoader.item.popoutSwitchClosing === true
-    : false
-
-  function setGridColor(value) {
-    var c = Model.validColor(value)
-    gridColor = c
-    saveColorProc.command = ["bash", "-c",
-      'd="${XDG_CONFIG_HOME:-$HOME/.config}/dev-stats"; mkdir -p "$d" && printf "%s\\n" "$1" > "$d/color"',
-      "_", c]
-    saveColorProc.running = true
+  readonly property bool isVertical: {
+    var b = root.bar
+    if (!b) return false
+    try { return b.vertical === true || b.isVertical === true } catch (e) { return false }
   }
 
-  function open() {
-    if (panelLoader.item) panelLoader.item.open()
+  readonly property bool opened: popup.visible
+  readonly property bool popoutSwitchClosing: false
+
+  function open() { if (!popup.visible) popup.toggle() }
+  function close() { popup.visible = false }
+  function toggle() { popup.toggle() }
+  function closeForPopoutSwitch() { popup.visible = false }
+
+  function act(name) {
+    if (name === "panel") toggle()
+    else if (name === "refresh") refresh()
   }
 
-  function close() {
-    if (panelLoader.item) panelLoader.item.close()
+  function openSettings() {
+    popup.tab = 1                       // the Bar tab
+    if (!popup.visible) popup.toggle()
   }
 
-  function toggle() {
-    if (panelLoader.item) panelLoader.item.toggle()
-  }
-
-  function closeForPopoutSwitch() {
-    if (panelLoader.item) panelLoader.item.closeForPopoutSwitch()
-  }
-
-  function injectPanel() {
-    if (!panelLoader.item) return
-    panelLoader.item.bar = root.bar
-    panelLoader.item.anchorItem = button
-    panelLoader.item.hostWidget = root
-    panelLoader.item.store = root
+  function injectBar() {
+    if (fgProbe.item) fgProbe.item.bar = root.bar
   }
 
   // ---- refresh pipeline: list accounts, then fetch each one in turn -------
@@ -107,7 +113,7 @@ BarWidget {
     if (selectedYear > 0) selectYear(selectedYear)
   }
 
-  // ---- account / year selection (called from Panel.qml) --------------------
+  // ---- account / year selection (called from SettingsPopup.qml) ------------
   function selectAccount(i) {
     selected = i
     selectedYear = 0
@@ -169,12 +175,29 @@ BarWidget {
     stepTimer.restart()
   }
 
-  Process { id: saveColorProc }
+  // ---- one-time move of the color saved by 1.1.x (~/.config/dev-stats/color) ----
+  property string legacyColor: ""
+
+  function migrateLegacyColor() {
+    if (legacyColor === "" || !settingsStore.loaded) return
+    if (settingsStore.get("gridColor") === null) settingsStore.set("gridColor", Model.validColor(legacyColor))
+    legacyColor = ""
+  }
+
+  Connections {
+    target: settingsStore
+    function onLoadedChanged() { root.migrateLegacyColor() }
+  }
 
   Process {
     id: loadColorProc
     command: ["bash", "-c", 'cat "${XDG_CONFIG_HOME:-$HOME/.config}/dev-stats/color" 2>/dev/null || true']
-    stdout: StdioCollector { onStreamFinished: root.gridColor = Model.validColor(text.trim()) }
+    stdout: StdioCollector {
+      onStreamFinished: {
+        var t = text.trim()
+        if (/^#[0-9a-fA-F]{6}$/.test(t)) { root.legacyColor = t; root.migrateLegacyColor() }
+      }
+    }
   }
 
   Process {
@@ -202,30 +225,47 @@ BarWidget {
   Timer { id: watchdog; interval: 180000; onTriggered: root.busy = false }
 
   Timer {
-    interval: 30 * 60 * 1000
+    interval: root.cfgMinutes * 60 * 1000
     repeat: true
-    running: true
-    triggeredOnStart: true
+    running: root.cfgAuto
     onTriggered: root.refresh()
   }
 
-  Component.onCompleted: loadColorProc.running = true
+  Component.onCompleted: {
+    loadColorProc.running = true
+    root.refresh()
+  }
 
   // Fixed width: does not depend on the Repeater having populated the Row yet.
-  implicitWidth: dsIcon + 7 * dsSquare + 7 * dsGap + Style.space(16)
+  implicitWidth: (cfgShowIcon ? dsIcon + dsGap : 0) + cfgDays * dsSquare + (cfgDays - 1) * dsGap + Style.space(16)
   implicitHeight: Math.max(button.implicitHeight, dsSquare + Style.space(8))
 
-  onBarChanged: injectPanel()
+  onBarChanged: injectBar()
 
+  // Only supplies the bar's foreground color (see Foreground.qml).
   Loader {
-    id: panelLoader
+    id: fgProbe
     active: true
-    source: Qt.resolvedUrl("Panel.qml")
+    source: Qt.resolvedUrl("Foreground.qml")
     visible: false
     onLoaded: {
-      root.injectPanel()
-      Qt.callLater(root.injectPanel)
+      root.injectBar()
+      Qt.callLater(root.injectBar)
     }
+  }
+
+  SettingsPopup {
+    id: popup
+    store: settingsStore
+    stats: root
+    anchorItem: button
+    barObject: root.bar
+    vertical: root.isVertical
+    fg: root.dsFg
+    fontFamily: root.bar ? root.bar.fontFamily : Style.font.family
+    panelMode: root.panelMode
+    panelAccent: root.panelAccent
+    readSetting: function(key, fallback) { return root.setting(key, fallback) }
   }
 
   // The button supplies hover, tooltip and clicks; the squares are drawn on top
@@ -235,12 +275,13 @@ BarWidget {
     anchors.fill: parent
     bar: root.bar
     text: " "
-    tooltipText: root.current
-      ? "Last 7 days \u00b7 " + Model.providerLabel(root.current.provider) + " (middle-click to refresh)"
-      : "Contribution grid (middle-click to refresh)"
+    tooltipText: (root.current
+      ? "Last " + root.cfgDays + " days \u00b7 " + Model.providerLabel(root.current.provider)
+      : "Contribution grid") + " (right-click for settings)"
     onPressed: function(buttonCode) {
-      if (buttonCode === Qt.LeftButton) root.toggle()
-      else if (buttonCode === Qt.MiddleButton) root.refresh()
+      if (buttonCode === Qt.LeftButton) root.act(root.cfgClick)
+      else if (buttonCode === Qt.MiddleButton) root.act(root.cfgMiddle)
+      else if (buttonCode === Qt.RightButton) root.openSettings()
     }
   }
 
@@ -253,6 +294,7 @@ BarWidget {
     // Icon and squares share the row height and are centered on it, so the
     // whole group sits on the bar's vertical middle.
     Text {
+      visible: root.cfgShowIcon
       width: root.dsIcon
       height: squares.height
       verticalAlignment: Text.AlignVCenter
