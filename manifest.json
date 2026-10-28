@@ -10,7 +10,7 @@
     "bar-widget"
   ],
   "entryPoints": {
-    "barWidget": "BarWidget.qml"
+    "barWidget": "qml/BarWidget.qml"
   },
   "barWidget": {
     "displayName": "Dev Stats",
@@ -26,17 +26,233 @@
     "allowMultiple": false,
     "defaultSection": "right",
     "defaults": {
+      "colorMode": "theme",
+      "customBg": "#141414",
+      "customFg": "#e0e0e0",
+      "accentColor": "#7aa2f7",
+      "textColor": "auto",
+      "gridColor": "#39d353",
+      "cardStyle": "soft",
+      "density": "comfortable",
+      "cornerRadius": 4,
+      "fontScale": 100,
+      "showStreaks": true,
+      "showLegend": true,
+      "showCards": true,
+      "windowWidth": 640,
+      "windowHeight": 520,
+      "openAs": "panel",
+      "frame": false,
+      "frameGradient": true,
+      "frameColor": "accent",
+      "surfaceTint": 0,
+      "opacity": 97,
       "showIcon": true,
       "days": 7,
+      "squareSize": 9,
+      "squareRound": 2,
       "clickAction": "panel",
       "middleAction": "refresh",
       "autoRefresh": true,
-      "refreshMinutes": 30,
-      "gridColor": "#39d353",
-      "panelColor": "theme",
-      "panelCustomColor": "#7aa2f7"
+      "refreshMinutes": 30
     },
     "schema": [
+      {
+        "key": "colorMode",
+        "type": "enum",
+        "label": "Colors",
+        "defaultValue": "theme",
+        "description": "Follow theme matches your Omarchy theme live. Window borders takes the accent from your theme's window border. Custom lets you choose the background, text and accent. Monochrome removes every hue.",
+        "options": [
+          "theme",
+          "borders",
+          "custom",
+          "monochrome"
+        ]
+      },
+      {
+        "key": "customBg",
+        "type": "string",
+        "label": "Custom background",
+        "defaultValue": "#141414",
+        "description": "Background, text and accent, used exactly as you pick them. A #rrggbb color, used when Colors is Custom."
+      },
+      {
+        "key": "customFg",
+        "type": "string",
+        "label": "Custom text",
+        "defaultValue": "#e0e0e0",
+        "description": "Background, text and accent, used exactly as you pick them. A #rrggbb color, used when Colors is Custom."
+      },
+      {
+        "key": "accentColor",
+        "type": "string",
+        "label": "Custom accent",
+        "defaultValue": "#7aa2f7",
+        "description": "Background, text and accent, used exactly as you pick them. A #rrggbb color, used when Colors is Custom."
+      },
+      {
+        "key": "textColor",
+        "type": "enum",
+        "label": "Text",
+        "defaultValue": "auto",
+        "description": "Always readable keeps your theme's text color, and switches to black or white when the window is too light or too dark for it. My text color uses the Text color from Custom colors. Custom colors always use their own text color.",
+        "options": [
+          "auto",
+          "theme",
+          "custom"
+        ]
+      },
+      {
+        "key": "gridColor",
+        "type": "string",
+        "label": "Grid color",
+        "defaultValue": "#39d353",
+        "description": "The color of the busiest days, on the bar and in the grid. Quieter days are darker shades of it."
+      },
+      {
+        "key": "cardStyle",
+        "type": "enum",
+        "label": "Card style",
+        "defaultValue": "soft",
+        "description": "Soft fills cards lightly, outline draws a border only, flat has neither.",
+        "options": [
+          "soft",
+          "outline",
+          "flat"
+        ]
+      },
+      {
+        "key": "density",
+        "type": "enum",
+        "label": "Spacing",
+        "defaultValue": "comfortable",
+        "description": "How much air there is between things.",
+        "options": [
+          "compact",
+          "comfortable",
+          "spacious"
+        ]
+      },
+      {
+        "key": "cornerRadius",
+        "type": "integer",
+        "label": "Roundness",
+        "defaultValue": 4,
+        "description": "0 is square, 20 is very round. The grid's squares follow it too.",
+        "min": 0,
+        "max": 20,
+        "step": 2
+      },
+      {
+        "key": "fontScale",
+        "type": "integer",
+        "label": "Text size",
+        "defaultValue": 100,
+        "description": "1 is normal, 1.25 is a quarter bigger.",
+        "min": 80,
+        "max": 150,
+        "step": 5
+      },
+      {
+        "key": "showStreaks",
+        "type": "boolean",
+        "label": "Show streaks",
+        "defaultValue": true,
+        "description": "The current and the longest streak next to the total."
+      },
+      {
+        "key": "showLegend",
+        "type": "boolean",
+        "label": "Show the legend",
+        "defaultValue": true,
+        "description": "The Less to More row under the grid."
+      },
+      {
+        "key": "showCards",
+        "type": "boolean",
+        "label": "Show the numbers",
+        "defaultValue": true,
+        "description": "Cards under the grid: contributions, active days, longest streak and busiest day."
+      },
+      {
+        "key": "windowWidth",
+        "type": "integer",
+        "label": "Window width",
+        "defaultValue": 640,
+        "description": "How wide Dev Stats opens. The grid's squares grow with it.",
+        "min": 480,
+        "max": 1200,
+        "step": 20
+      },
+      {
+        "key": "windowHeight",
+        "type": "integer",
+        "label": "Window height",
+        "defaultValue": 520,
+        "description": "How tall Dev Stats opens.",
+        "min": 420,
+        "max": 1100,
+        "step": 20
+      },
+      {
+        "key": "openAs",
+        "type": "enum",
+        "label": "Open as",
+        "defaultValue": "panel",
+        "description": "Where the bar button opens Dev Stats. You can always pop it out or dock it back from the header.",
+        "options": [
+          "panel",
+          "window"
+        ]
+      },
+      {
+        "key": "frame",
+        "type": "boolean",
+        "label": "Window outline",
+        "defaultValue": false,
+        "description": "Draw the edge in your window border's colors instead of a plain neutral line."
+      },
+      {
+        "key": "frameGradient",
+        "type": "boolean",
+        "label": "Outline gradient",
+        "defaultValue": true,
+        "description": "Use the window border's whole gradient, at its angle, when it has more than one color."
+      },
+      {
+        "key": "frameColor",
+        "type": "enum",
+        "label": "Outline color",
+        "defaultValue": "accent",
+        "description": "The one color the outline takes when it isn't a gradient.",
+        "options": [
+          "accent",
+          "first",
+          "middle",
+          "last"
+        ]
+      },
+      {
+        "key": "surfaceTint",
+        "type": "integer",
+        "label": "Window tint",
+        "defaultValue": 0,
+        "description": "How much of the accent washes over the background. 0 keeps it plain.",
+        "min": 0,
+        "max": 30,
+        "step": 2
+      },
+      {
+        "key": "opacity",
+        "type": "integer",
+        "label": "Window opacity",
+        "defaultValue": 97,
+        "description": "100 is solid.",
+        "min": 50,
+        "max": 100,
+        "step": 1
+      },
       {
         "key": "showIcon",
         "type": "boolean",
@@ -48,35 +264,55 @@
         "key": "days",
         "type": "integer",
         "label": "Days on the bar",
+        "defaultValue": 7,
+        "description": "How many recent days show as squares.",
         "min": 3,
         "max": 14,
-        "step": 1,
-        "defaultValue": 7,
-        "description": "How many recent days show as squares."
+        "step": 1
+      },
+      {
+        "key": "squareSize",
+        "type": "integer",
+        "label": "Square size",
+        "defaultValue": 9,
+        "description": "How big each day's square is on the bar.",
+        "min": 6,
+        "max": 14,
+        "step": 1
+      },
+      {
+        "key": "squareRound",
+        "type": "integer",
+        "label": "Square roundness",
+        "defaultValue": 2,
+        "description": "0 is square, 7 makes them dots.",
+        "min": 0,
+        "max": 7,
+        "step": 1
       },
       {
         "key": "clickAction",
         "type": "enum",
         "label": "Left click",
+        "defaultValue": "panel",
+        "description": "What a left click on the widget does. Right click always opens the settings.",
         "options": [
           "panel",
           "refresh",
           "none"
-        ],
-        "defaultValue": "panel",
-        "description": "What a left click on the widget does. Right click always opens the settings."
+        ]
       },
       {
         "key": "middleAction",
         "type": "enum",
         "label": "Middle click",
+        "defaultValue": "refresh",
+        "description": "What a middle click on the widget does.",
         "options": [
           "refresh",
           "panel",
           "none"
-        ],
-        "defaultValue": "refresh",
-        "description": "What a middle click on the widget does."
+        ]
       },
       {
         "key": "autoRefresh",
@@ -89,37 +325,11 @@
         "key": "refreshMinutes",
         "type": "integer",
         "label": "Refresh every",
+        "defaultValue": 30,
+        "description": "Minutes between updates. Each one runs your own gh, glab or curl.",
         "min": 5,
         "max": 240,
-        "step": 5,
-        "defaultValue": 30,
-        "description": "Minutes between updates. Each one runs your own gh, glab or curl."
-      },
-      {
-        "key": "gridColor",
-        "type": "string",
-        "label": "Grid color",
-        "defaultValue": "#39d353",
-        "description": "Color of the busiest days. Quieter days are darker shades of it."
-      },
-      {
-        "key": "panelColor",
-        "type": "enum",
-        "label": "Settings panel colors",
-        "options": [
-          "theme",
-          "custom",
-          "monochrome"
-        ],
-        "defaultValue": "theme",
-        "description": "Colors of this panel. Follow theme brings in your theme's accent."
-      },
-      {
-        "key": "panelCustomColor",
-        "type": "string",
-        "label": "Panel accent color",
-        "defaultValue": "#7aa2f7",
-        "description": "Pick one, or type a hex like #7aa2f7."
+        "step": 5
       }
     ]
   }

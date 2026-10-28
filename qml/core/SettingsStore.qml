@@ -18,9 +18,8 @@ Item {
     property bool loaded: false
 
     // Edits made before settings.json has been read. They are kept in memory
-    // and merged over the file once it loads, so a very early write (for
-    // example a refresh finishing at startup) can never replace the
-    // saved settings with a nearly empty file.
+    // and merged over the file once it loads, so a very early write can never
+    // replace the saved settings with a nearly empty file.
     property var pending: ({})
     property bool pendingAll: false     // a reset happened before the first load
 
@@ -29,19 +28,19 @@ Item {
     signal keyChanged(string key)
 
     function get(key) {
-        var v = values[key]
+        const v = values[key]
         return v === undefined ? null : v
     }
 
     function set(key, value) {
-        var next = {}
-        for (var k in values) next[k] = values[k]
+        const next = {}
+        for (const k in values) next[k] = values[k]
         if (value === null || value === undefined) delete next[key]
         else next[key] = value
         values = next
         if (!loaded && !pendingAll) {
-            var p = {}
-            for (var pk in pending) p[pk] = pending[pk]
+            const p = {}
+            for (const pk in pending) p[pk] = pending[pk]
             p[key] = (value === undefined) ? null : value
             pending = p
         }
@@ -60,8 +59,8 @@ Item {
 
     // Back to the given defaults (stored explicitly, so nothing else shows through).
     function resetAll(defaults) {
-        var next = {}
-        for (var k in defaults) next[k] = defaults[k]
+        const next = {}
+        for (const k in defaults) next[k] = defaults[k]
         values = next
         if (!loaded) pendingAll = true
         persist()
@@ -71,12 +70,12 @@ Item {
 
     // The last few texts we wrote ourselves. The file watcher reports each of our
     // own writes back a moment later; absorbing such an echo would roll the
-    // settings back to an older state (a slider drag would stutter or jump back),
-    // so echoes are recognised and skipped.
+    // settings back to an older state (a slider drag or typing would stutter or
+    // jump back), so echoes are recognised and skipped.
     property var recent: []
 
     // Disk writes are coalesced: the UI reads `values` from memory, so nothing
-    // has to hit the disk per tick of a slider drag.
+    // has to hit the disk per tick of a slider drag or per typed character.
     property bool dirty: false
 
     property double lastWrite: 0
@@ -94,8 +93,8 @@ Item {
         if (!dirty) return
         dirty = false
         lastWrite = Date.now()
-        var text = JSON.stringify(values, null, 2) + "\n"
-        var r = recent.slice(-7)
+        const text = JSON.stringify(values, null, 2) + "\n"
+        const r = recent.slice(-7)
         r.push(text)
         recent = r
         echoTimer.restart()
@@ -103,7 +102,7 @@ Item {
     }
 
     function absorb(text) {
-        var raw = String(text || "")
+        const raw = String(text || "")
         if (loaded) {
             // While our own write is pending or still settling, whatever the file
             // watcher reports is ours (it can even be a half-written or empty
@@ -111,26 +110,26 @@ Item {
             if (dirty || writeTimer.running || echoTimer.running) return
             if (recent.indexOf(raw) >= 0) return
         }
-        var next = null
+        let next = null
         try {
-            var parsed = JSON.parse(raw)
+            const parsed = JSON.parse(raw)
             if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) next = parsed
         } catch (e) { }
-        var wasLoaded = loaded
+        const wasLoaded = loaded
         if (!wasLoaded) {
             // First read: saved file + anything edited before it arrived.
-            var merged = {}
+            const merged = {}
             if (!pendingAll && next !== null)
-                for (var fk in next) merged[fk] = next[fk]
+                for (const fk in next) merged[fk] = next[fk]
             if (pendingAll) {
-                for (var vk in values) merged[vk] = values[vk]
+                for (const vk in values) merged[vk] = values[vk]
             } else {
-                for (var pk in pending) {
+                for (const pk in pending) {
                     if (pending[pk] === null) delete merged[pk]
                     else merged[pk] = pending[pk]
                 }
             }
-            var touched = pendingAll || Object.keys(pending).length > 0
+            const touched = pendingAll || Object.keys(pending).length > 0
             values = merged
             pending = ({})
             pendingAll = false
@@ -141,10 +140,8 @@ Item {
         if (next === null) return                  // empty or unreadable: keep what we have
         if (JSON.stringify(next) === JSON.stringify(values)) return
         values = next                              // edited elsewhere (another bar, by hand)
-        if (wasLoaded) {
-            changed()
-            keyChanged("*")
-        }
+        changed()
+        keyChanged("*")
     }
 
     Component.onCompleted: mkdir.running = true
@@ -152,7 +149,8 @@ Item {
 
     Process {
         id: mkdir
-        command: ["mkdir", "-p", root.stateDir]
+        // the settings folder is yours alone (0700)
+        command: ["sh", "-c", 'umask 077; mkdir -p -m 700 -- "$1" && [ ! -L "$1" ] && chmod 700 -- "$1"', "sh", root.stateDir]
         onExited: file.reload()
     }
 
@@ -164,9 +162,7 @@ Item {
         path: root.path
         watchChanges: true
         onFileChanged: reload()
-        // text is a function in FileView, so it must be called: passing `text`
-        // itself handed absorb() the function, never the file, and the saved
-        // settings were never read back.
+        // text is a function in FileView, so it must be called.
         onTextChanged: root.absorb(text())
         onLoaded: root.absorb(text())
         // No file yet (first run): nothing to restore, but start saving.
