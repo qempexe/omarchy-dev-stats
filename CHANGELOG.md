@@ -4,6 +4,14 @@ All notable changes to Dev Stats. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [1.3.1] - 2026-10-28
+
+### Fixed
+
+- Your own text color stays readable: when it is too close to the background (a light
+  text color on a light custom background, say), it is made darker or lighter, keeping
+  its tint, only as much as needed. A color that already reads is used as it is.
+
 ## [1.3.0] - 2026-10-28
 
 ### Added
@@ -74,6 +82,7 @@ All notable changes to Dev Stats. The format follows
   the Omarchy bar, with the last year and each calendar year, from your existing
   `gh`, `glab`, `tea` or `fj` logins.
 
+[1.3.1]: https://github.com/qempexe/omarchy-dev-stats/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/qempexe/omarchy-dev-stats/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/qempexe/omarchy-dev-stats/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/qempexe/omarchy-dev-stats/compare/v1.0.0...v1.1.0
