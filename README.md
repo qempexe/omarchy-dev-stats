@@ -131,7 +131,7 @@ Each row has a **↺** to put it back, and **Reset all** in the header puts back
 | Tab | Setting | Default | |
 | --- | --- | --- | --- |
 | Colors | Colors | Follow theme | Follow theme, Window borders, Custom or Monochrome |
-| | Custom colors | | background, text and accent, a swatch or a hex code, used exactly as you pick them |
+| | Custom colors | | background, text and accent, a swatch or a hex code; text too close to the background is darkened or lightened just enough to read |
 | | Text | Always readable | or Theme, or My text color |
 | | Grid color | `#39d353` | the busiest days; quieter days are darker shades of it |
 | Appearance | Card style | Soft | Soft, Outline or Flat |

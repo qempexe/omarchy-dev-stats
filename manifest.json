@@ -75,21 +75,21 @@
         "type": "string",
         "label": "Custom background",
         "defaultValue": "#141414",
-        "description": "Background, text and accent, used exactly as you pick them. A #rrggbb color, used when Colors is Custom."
+        "description": "Background, text and accent, used as you pick them. Text too close to the background is made darker or lighter, keeping its tint, only as much as it needs to read. A #rrggbb color, used when Colors is Custom."
       },
       {
         "key": "customFg",
         "type": "string",
         "label": "Custom text",
         "defaultValue": "#e0e0e0",
-        "description": "Background, text and accent, used exactly as you pick them. A #rrggbb color, used when Colors is Custom."
+        "description": "Background, text and accent, used as you pick them. Text too close to the background is made darker or lighter, keeping its tint, only as much as it needs to read. A #rrggbb color, used when Colors is Custom."
       },
       {
         "key": "accentColor",
         "type": "string",
         "label": "Custom accent",
         "defaultValue": "#7aa2f7",
-        "description": "Background, text and accent, used exactly as you pick them. A #rrggbb color, used when Colors is Custom."
+        "description": "Background, text and accent, used as you pick them. Text too close to the background is made darker or lighter, keeping its tint, only as much as it needs to read. A #rrggbb color, used when Colors is Custom."
       },
       {
         "key": "textColor",

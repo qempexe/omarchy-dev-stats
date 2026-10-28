@@ -26,7 +26,7 @@ const groups = [
               when: [{ key: "colorMode", is: ["custom"] }],
               fallback: { customBg: "#141414", customFg: "#e0e0e0", accentColor: "#7aa2f7" },
               targets: [{ key: "customBg", label: "Background" }, { key: "customFg", label: "Text" }, { key: "accentColor", label: "Accent" }],
-              hint: "Background, text and accent, used exactly as you pick them." },
+              hint: "Background, text and accent, used as you pick them. Text too close to the background is made darker or lighter, keeping its tint, only as much as it needs to read." },
             { key: "textColor", label: "Text", kind: "enum", fallback: "auto", section: "Text",
               options: ["auto", "theme", "custom"],
               labels: { auto: "Always readable", theme: "Theme", custom: "My text color" },

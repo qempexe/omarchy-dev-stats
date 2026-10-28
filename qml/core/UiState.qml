@@ -50,6 +50,19 @@ Item {
     function hexOr(v, fallback) { return Qt.color(Schema.isHex(v) ? v : fallback) }
     // Text has to read against the surface: too close to it, and it turns black or white.
     function readable(c, on) { return Math.abs(lumOf(c) - lumOf(on)) >= 0.35 ? c : contrast(on) }
+    // Your own text color, kept as it is when it reads on the surface. When it is too
+    // close to the surface, it is made darker (on a light surface) or lighter (on a
+    // dark one), keeping its tint, only as much as needed.
+    function keepTint(c, on) {
+        const need = 0.4
+        if (Math.abs(lumOf(c) - lumOf(on)) >= need) return c
+        const to = lumOf(on) > 0.5 ? 0 : 1
+        for (let t = 0.05; t < 1; t += 0.05) {
+            const m = Qt.rgba(c.r + (to - c.r) * t, c.g + (to - c.g) * t, c.b + (to - c.b) * t, 1)
+            if (Math.abs(lumOf(m) - lumOf(on)) >= need) return m
+        }
+        return contrast(on)
+    }
 
     // ---- the color scheme (Settings > Colors) -------------------------------------
     //   theme       the bar's own colors and the theme's accent
@@ -67,9 +80,9 @@ Item {
         : (mono ? grey(lumOf(barSurface)) : barSurface)
     readonly property bool lightSurface: lumOf(surface) > 0.5
     readonly property color customFg: hexOr(cfgSafe.customFg, "#e0e0e0")
-    readonly property color fg: custom ? customFg
+    readonly property color fg: custom ? keepTint(customFg, surface)
         : (mono ? contrast(surface)
-        : (cfgSafe.textColor === "custom" ? customFg
+        : (cfgSafe.textColor === "custom" ? keepTint(customFg, surface)
         : (cfgSafe.textColor === "theme" ? barFg : readable(barFg, surface))))
     readonly property real lum: lumOf(fg)
     readonly property bool lightText: lum > 0.5
