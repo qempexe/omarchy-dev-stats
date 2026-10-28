@@ -112,6 +112,8 @@ t("text is drawn plain, and no native text field reads the clipboard", () => {
 t("manifest matches Schema.js", () => {
     const m = JSON.parse(fs.readFileSync(path.join(root, "manifest.json"), "utf8"));
     assert.strictEqual(m.id, "io.github.qempexe.dev-stats");
+    assert.strictEqual(m.version, "1.3.0");
+    assert.ok(fs.readFileSync(path.join(root, "CHANGELOG.md"), "utf8").includes("## [" + m.version + "] - "), "the version has a changelog entry");
     assert.deepStrictEqual(m.barWidget.schema.map((e) => e.key), S.settingKeys);
     assert.deepStrictEqual(m.barWidget.defaults, S.defaults);
     assert.strictEqual(S.defaults.gridColor, M.DEFAULT_COLOR);

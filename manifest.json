@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "io.github.qempexe.dev-stats",
   "name": "Dev Stats",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "author": "qempexe",
   "license": "MIT",
   "description": "Contribution activity grid for GitHub, GitLab and Forgejo/Gitea/Codeberg in the Omarchy bar, using your existing gh/glab/tea/fj terminal logins.",
