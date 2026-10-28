@@ -163,6 +163,16 @@ Item {
 
             RowLayout {
                 id: tabsRow
+                // the widest tab title, in the open tab's (bold) weight, plus some air
+                TextMetrics {
+                    id: widest
+                    font.family: ui.fontName
+                    font.pixelSize: ui.fs(12)
+                    font.weight: Font.DemiBold
+                    text: Schema.groups.concat([{ title: "About" }]).map((g) => g.title)
+                        .reduce((a, b) => (b.length > a.length ? b : a), "")
+                }
+                readonly property real tabW: Math.ceil(widest.width) + ui.px(24)
                 width: tabsFlick.contentWidth
                 height: tabsFlick.height
                 spacing: 0
@@ -172,8 +182,9 @@ Item {
                     delegate: Item {
                         readonly property bool on: index === root.group && !root.searching
                         Layout.fillWidth: true
-                        Layout.preferredWidth: tabLabel.implicitWidth + ui.px(18)
-                        Layout.minimumWidth: tabLabel.implicitWidth + ui.px(18)
+                        // every tab as wide as the widest one
+                        Layout.preferredWidth: tabsRow.tabW
+                        Layout.minimumWidth: tabsRow.tabW
                         Layout.fillHeight: true
                         onOnChanged: if (on) Qt.callLater(tabsFlick.reveal, this)
                         onXChanged: if (on) Qt.callLater(tabsFlick.reveal, this)
