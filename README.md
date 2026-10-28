@@ -1,53 +1,104 @@
-# Dev Stats
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: light)" srcset="assets/logo-dark.png">
+    <img src="assets/logo.png" alt="Dev Stats logo" width="112">
+  </picture>
+</p>
 
-A contribution-activity grid for the Omarchy bar, in the style of the GitHub profile graph. One widget, several platforms:
+<h1 align="center">Dev Stats</h1>
 
-![Dev-stats preview](preview.png?v=2=1.1.0)
+<p align="center">Your contribution graph in the <a href="https://omarchy.org">Omarchy</a> bar, for GitHub, GitLab and Forgejo.</p>
 
-| Platform | Login (once, in a terminal) | Source of the numbers |
-| --- | --- | --- |
-| GitHub / GitHub Enterprise | `gh auth login` | GraphQL contribution calendar |
-| GitLab / self-hosted GitLab | `glab auth login` | your activity events, counted per day |
-| Forgejo / Gitea / Codeberg | `tea login add` or `fj auth login` | the instance's public heatmap endpoint |
+![Dev Stats](preview.png)
 
-## On the bar
+The last days of your contribution graph sit on the bar as small squares, darker on quiet
+days and brighter on busy ones. Click them and the whole year opens, with your streaks,
+every calendar year and the busiest day. It uses the logins you already have in `gh`,
+`glab`, `tea` or `fj`, and opens docked to the bar or as a window of its own.
 
-```text
-[ logo ] ▪▪▪▪▪▪▪
-```
+## Features
 
-The bar shows the last 7 days of the selected account as coloured squares (3 to 14 days, and the logo can be hidden).
+- **Three platforms**: GitHub (and GitHub Enterprise), GitLab (and self-hosted GitLab),
+  and Forgejo, Gitea or Codeberg.
+- **Your existing logins**: accounts are found from the platform's own CLI. No tokens to
+  paste, and none are read.
+- **On the bar**: the last 3 to 14 days as squares, with the platform's logo.
+- **The whole year**: the grid, the last year or any calendar year, streaks, and the
+  numbers under it.
+- **Your theme**: follows your Omarchy theme live, takes your window border's colors,
+  or uses your own colors exactly, or none at all. The grid has its own color.
+- **Docked or popped out**: a panel on the bar, or a window you can move, resize and tile.
+- **Made to fit**: card style, spacing, roundness, text size, window size, outline,
+  tint and opacity, and the squares on the bar, all in a searchable Settings tab.
 
-- **Left click**: opens the panel (configurable).
-- **Middle click**: refreshes (configurable).
-- **Right click**: opens the panel on the Bar tab.
+### The grid
 
-## The panel
+<img align="right" src="screenshots/grid.png" alt="Grid" width="420">
 
-A floating panel anchored to the bar, closed with `Esc` or a click outside. Changes apply instantly.
+One column per week, Sunday on top, five shades of your grid color. Hover a day for its
+count. The chips above switch between the last year and each calendar year the platform
+knows about, and between your accounts when you have more than one.
 
-| Tab | What is in it |
-| --- | --- |
-| **Grid** | Account tabs, the chips for the rolling last year and each calendar year, the contribution grid with streaks, per-day hover details, Refresh |
-| **Bar** | Show the platform icon, days on the bar (3 to 14), left and middle click actions |
-| **Data** | Refresh automatically, refresh interval (5 to 240 minutes) |
-| **Look** | Grid color (6 presets or any hex), panel colors: Follow theme, Custom (8 presets or a hex), Monochrome |
+Under the grid: your contributions, the days you were active, the longest streak and the
+busiest day. **Refresh** in the header fetches new numbers, and the **Auto** switch next
+to it turns refreshing in the background on and off.
 
-Every setting has a plain-language hint and a reset arrow once it differs from the default. The switch in the header turns automatic refreshing on and off, and **Reset all** (asks twice) puts every setting back to its default.
+<br clear="right">
 
-## Install
+## Installation
 
-```sh
+```bash
 omarchy plugin add https://github.com/qempexe/omarchy-dev-stats.git --enable --yes
+omarchy restart shell
 ```
 
-## Requirements
+Then add **Dev Stats** to your bar, from the bar settings or with
+`{ "id": "io.github.qempexe.dev-stats" }` under `bar` → `layout` in
+`~/.config/omarchy/shell.json`.
 
-`bash`, `jq` and `curl`, plus the CLI for each platform you use (`gh`, `glab`, and `tea` or `fj`). Only the CLIs for platforms you actually use are needed.
+It needs `bash`, `jq` and `curl`, which Omarchy has, plus the CLI of each platform you
+use, logged in once from a terminal:
 
-## Accounts
+| Platform | Log in | Where the numbers come from |
+| --- | --- | --- |
+| GitHub / GitHub Enterprise | `gh auth login` | the GraphQL contribution calendar |
+| GitLab / self-hosted GitLab | `glab auth login` | your activity events, counted per day |
+| Forgejo / Gitea / Codeberg | `tea login add` or `fj auth login` | the instance's public heatmap |
 
-Accounts are found automatically from your existing CLI logins. To add one by hand (or to follow a public profile), create `~/.config/dev-stats/accounts.json`:
+Only the CLIs of the platforms you use are needed.
+
+## Usage
+
+### Bar button
+
+| Click | Does |
+| --- | --- |
+| Left | opens Dev Stats on the Grid tab, or closes it (or *Refresh*, or nothing: see **Left click**) |
+| Middle | refreshes (or opens Dev Stats, or nothing: see **Middle click**) |
+| Right | the Settings tab |
+
+**Esc** or **×** closes it, and **Alt+←/→** switches tabs.
+
+### Pop out and dock
+
+The header's **Pop out** turns Dev Stats into a real window you can move, resize and
+tile, and **Dock** puts it back on the bar. **Settings › Window › Open as** picks which one
+the bar button opens.
+
+Hyprland tiles new windows. To float and center the popped-out window, add to
+`~/.config/hypr/hyprland.lua`:
+
+```lua
+o.window({ class = "^org\\.quickshell$", title = "^Dev Stats$" }, { tag = "+dev-stats-window" })
+o.window({ tag = "dev-stats-window" }, { float = true })
+o.window({ tag = "dev-stats-window" }, { center = true })
+o.window({ tag = "dev-stats-window" }, { size = { 640, 520 } })
+```
+
+### Accounts
+
+Accounts are found from your CLI logins. To add one by hand, or to follow a public
+profile, create `~/.config/dev-stats/accounts.json`:
 
 ```json
 [
@@ -56,93 +107,128 @@ Accounts are found automatically from your existing CLI logins. To add one by ha
 ]
 ```
 
-`provider` is `github`, `gitlab` or `forgejo` (`gitea` is accepted as an alias).
+`provider` is `github`, `gitlab` or `forgejo` (`gitea` works too).
 
-## Settings
+## Configuration
 
-| Setting | Values | Default |
-| --- | --- | --- |
-| `showIcon` | `true`, `false` | `true` |
-| `days` | 3 to 14 | `7` |
-| `clickAction` | `panel`, `refresh`, `none` | `panel` |
-| `middleAction` | `refresh`, `panel`, `none` | `refresh` |
-| `autoRefresh` | `true`, `false` | `true` |
-| `refreshMinutes` | 5 to 240 | `30` |
-| `gridColor` | `#rrggbb` hex color | `#39d353` |
-| `panelColor` | `theme`, `custom`, `monochrome` | `theme` |
-| `panelCustomColor` | `#rrggbb` hex color | `#7aa2f7` |
+The **Settings** tab, or a right click on the bar button. Everything applies at once and
+is saved in `~/.local/state/omarchy-dev-stats/settings.json`.
 
-`gridColor` is the color of the busiest days. The quieter levels are darker shades of the same color. An invalid value falls back to the default green. Settings are saved in `~/.local/state/omarchy-dev-stats/settings.json`; edits made there by hand are picked up while the shell runs.
+<table>
+<tr>
+<td><img src="screenshots/settings.png" alt="Settings: Colors"></td>
+<td><img src="screenshots/settings-bar.png" alt="Settings: Bar"></td>
+</tr>
+<tr>
+<td><img src="screenshots/settings-window.png" alt="Settings: Window"></td>
+<td><img src="screenshots/about.png" alt="About"></td>
+</tr>
+</table>
 
-If you used 1.1.x, the grid color you picked is moved over from `~/.config/dev-stats/color` the first time 1.2.0 runs.
+The settings sit in tabs, with a search box above them that looks through every tab.
+Each row has a **↺** to put it back, and **Reset all** in the header puts back everything.
 
-## Security and privacy
+| Tab | Setting | Default | |
+| --- | --- | --- | --- |
+| Colors | Colors | Follow theme | Follow theme, Window borders, Custom or Monochrome |
+| | Custom colors | | background, text and accent, a swatch or a hex code, used exactly as you pick them |
+| | Text | Always readable | or Theme, or My text color |
+| | Grid color | `#39d353` | the busiest days; quieter days are darker shades of it |
+| Appearance | Card style | Soft | Soft, Outline or Flat |
+| | Spacing | Comfortable | Compact, Comfortable or Spacious |
+| | Roundness | 4 | 0 (square) to 20, for the window and the grid's squares |
+| | Text size | 1 | 0.8 to 1.5 |
+| | Show streaks, the legend, the numbers | on | what the Grid tab shows |
+| Window | Window width, height | 640 × 520 | 480 to 1200, 420 to 1100 |
+| | Open as | Bar panel | or Own window |
+| | Window outline | off | the edge in your window border's colors, as a gradient or one color |
+| | Window tint | 0 | 0 to 30, the accent washed over the background |
+| | Window opacity | 97 | 50 to 100 |
+| Bar | Show platform icon | on | |
+| | Days on the bar | 7 | 3 to 14 |
+| | Square size, roundness | 9, 2 | 6 to 14, 0 (square) to 7 (dots) |
+| | Left click, middle click | Open Dev Stats, Refresh | or Refresh, Open Dev Stats, Nothing |
+| Data | Refresh automatically | on | every 30 minutes (5 to 240) |
 
-* The QML code makes no network requests. Fetching happens in `bin/dev-stats.sh`, which runs your own `gh`, `glab` and `curl` as your user.
-* The plugin never reads, prints or stores access tokens. It reads only the host and account names from the CLI config.
-* Host and account names are validated before they reach any command line, and may not start with `-`.
-* The only file written is `~/.local/state/omarchy-dev-stats/settings.json`, which holds the settings shown in the panel. Results are held in memory only.
-* Text fields in the panel are drawn by `SettingRow` (never a native `TextInput`), so nothing watches the clipboard on its own. Pasting uses `wl-paste` (`wl-clipboard`), read at most 1 KB for at most 2 seconds, only when you press Ctrl+V.
+**Window borders** and the outline read the active border from your theme's
+`hyprland.lua` (or `hyprland.conf`), and only take `#rrggbb` colors and an angle from it.
+Settings saved by 1.2 keep working, and the grid color saved by 1.1 is moved over once.
 
-## Limitations
+**About**, the last tab, has the logo, the version and a link to more plugins.
 
-* Year selection: GitHub offers every year your account has activity. GitLab offers the last three calendar years (its events API keeps about three years). Forgejo/Gitea only expose the last year, so no year chips appear for them.
-* GitLab has no public calendar API, so Dev-stats counts your activity events per day. Numbers can differ slightly from GitLab's own graph.
-* Forgejo/Gitea use the public heatmap endpoint over HTTPS. Private profiles and plain-HTTP instances are not supported.
-* Account discovery for `tea` and `fj` depends on their config formats. If an account is not found automatically, use `accounts.json`.
-* Month and weekday labels are English.
+## Troubleshooting
 
-## How it works
+- **No accounts.** Log in with the platform's CLI in a terminal (see Installation), then
+  press **Refresh**. If an account still isn't found, add it to `accounts.json`.
+- **Request failed.** Check the CLI's login (`gh auth status`, `glab auth status`), that
+  the profile is public on Forgejo/Gitea, and the network.
+- **Years.** GitHub offers every year your account was active. GitLab offers the last
+  three calendar years, as long as its events API keeps them. Forgejo and Gitea only give
+  the last year, so no year chips appear for them.
+- **GitLab numbers** are your activity events counted per day, since GitLab has no
+  calendar API. They can differ a little from GitLab's own graph.
+- **Forgejo and Gitea** are read over HTTPS only. Private profiles and plain HTTP
+  instances aren't supported.
+- **Privacy.** The QML makes no network requests. Fetching happens in `bin/dev-stats.sh`,
+  which runs your own `gh`, `glab` and `curl` as you. Tokens are never read, printed or
+  stored: only host and account names are taken from the CLI configs, and they are checked
+  before they reach a command line. Results are kept in memory only.
+- **Files.** The only file written is `settings.json`, in a folder only you can open
+  (0700).
+- **Text fields.** The search and hex fields never read the clipboard by themselves.
+  **Ctrl+V** (or **Shift+Insert**) pastes once through `wl-paste`, at most 1 KB.
+- **Something else.** Check `qs log` for `dev-stats` lines, and open an issue.
 
-```text
-BarWidget.qml      the bar squares and clicks; fetches and holds the data; reads settings
-SettingsPopup.qml  the panel (tabs, account and year chips, the grid, theme colors)
-SettingRow.qml     one setting: segments, chips, tiles, slider, switch, text field, colors
-SettingsStore.qml  settings.json: instant, merged on load, watched, echo-safe
-Stats.js           grid, streak and color maths; cleans everything that comes from outside
-Foreground.qml     only supplies the bar's foreground color
-bin/dev-stats.sh   account discovery and fetching (gh, glab, tea, fj, curl)
+## Contributing
+
+Bug reports and ideas are welcome as [issues](https://github.com/qempexe/omarchy-dev-stats/issues).
+[CONTRIBUTING.md](CONTRIBUTING.md) explains how to add a setting or a platform, the rules
+and the tests. Everyone taking part is expected to follow the
+[code of conduct](CODE_OF_CONDUCT.md). What changed in each version is in the
+[changelog](CHANGELOG.md).
+
+### Source layout
+
+```
+qml/
+├── BarWidget.qml     the bar squares and clicks, fetching and holding the results,
+│                     docking and popping out, the theme's border, the capped paste
+├── core/             UiState (colors, spacing, the open tab), SettingsStore (saved
+│                     locally, applied at once)
+├── panel/            Panel (docked), PopoutWindow, StatsView (the window), GridPage,
+│                     SettingsView + SettingRow + TileArt, AboutPage
+├── controls/         Btn, Chip, Sw, Txt, PasteInput (a text field with a bounded paste)
+└── js/               Schema.js (every setting), Stats.js (the grid and streaks, and
+                      cleaning what comes in), Theme.js (border colors)
+bin/dev-stats.sh      account discovery and fetching
+assets/               the logo, light and dark
+tools/gen-manifest.js node tools/gen-manifest.js
+tests/test_model.js   node tests/test_model.js
 ```
 
-## Tests
+### Upgrading and uninstalling
 
 ```bash
-python3 tests/test_manifest.py   # SettingsPopup.qml schema == manifest.json == BarWidget.qml; no native text inputs
-python3 tests/test_stats.py      # Stats.js under node: grid, streaks, colors, input cleaning
+omarchy plugin update io.github.qempexe.dev-stats
+omarchy restart shell
 ```
 
-## Status
-
-The model (`Stats.js`) and the manifest are tested. If something looks off, check `qs log` for `dev-stats` lines.
-
-## Adding another platform
-
-Add a `detect_<name>` and `fetch_<name>` function to `bin/dev-stats.sh` (each prints JSON), add the name to the `provider` checks, and add a label and glyph in `Stats.js`.
-
-## Remove
-
-```sh
+```bash
 omarchy plugin remove io.github.qempexe.dev-stats
+omarchy restart shell
+rm -rf ~/.local/state/omarchy-dev-stats ~/.config/dev-stats   # settings, your accounts.json
 ```
 
-## Changelog
+## License and credits
 
-### 1.2.0
+[MIT](LICENSE).
 
-- The panel is now a tabbed settings popup (Grid, Bar, Data, Look) anchored to the bar.
-- New settings: platform icon, days on the bar, left and middle click actions, automatic refresh and its interval, panel colors (Follow theme / Custom / Monochrome).
-- Right click opens the panel on the Bar tab.
-- Settings are stored in `~/.local/state/omarchy-dev-stats/settings.json`; the old `~/.config/dev-stats/color` is migrated once.
+- The numbers come from **GitHub**, **GitLab**, **Forgejo** and **Gitea**, through their own
+  command-line tools: [gh](https://cli.github.com), [glab](https://gitlab.com/gitlab-org/cli),
+  [tea](https://gitea.com/gitea/tea) and [forgejo-cli](https://codeberg.org/Cyborus/forgejo-cli).
+- Thanks to the **Omarchy** project for the shell and its plugin system, and to **Quickshell** and **Qt** for the toolkit.
+- Thanks to everyone who tests it and reports issues.
 
-### 1.1.0
-
-- Calendar-year chips, grid color, GitLab and Forgejo support.
-
-
-### 1.0.0
-
-- First release.
-
-### License
-
-MIT
+Dev Stats is an independent community plugin. It is not affiliated with or endorsed by
+GitHub, GitLab, Forgejo, Gitea, Codeberg or Omarchy. Their names are trademarks of their
+owners and are used only to describe what the plugin connects to.
