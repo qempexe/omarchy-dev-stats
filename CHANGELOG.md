@@ -4,6 +4,14 @@ All notable changes to Dev Stats. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [1.3.2] - 2026-11-05
+
+### Fixed
+
+- On Omarchy 4.5, where the bar's window spans the screen, the panel didn't open, or
+  opened over the bar. It now opens off the bar's outer edge, on any edge and with any
+  bar size.
+
 ## [1.3.1] - 2026-10-28
 
 ### Fixed
@@ -82,6 +90,7 @@ All notable changes to Dev Stats. The format follows
   the Omarchy bar, with the last year and each calendar year, from your existing
   `gh`, `glab`, `tea` or `fj` logins.
 
+[1.3.2]: https://github.com/qempexe/omarchy-dev-stats/compare/v1.3.1...v1.3.2
 [1.3.1]: https://github.com/qempexe/omarchy-dev-stats/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/qempexe/omarchy-dev-stats/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/qempexe/omarchy-dev-stats/compare/v1.1.0...v1.2.0
