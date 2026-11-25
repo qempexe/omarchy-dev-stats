@@ -8,9 +8,10 @@ const load = (file, names) => new Function(fs.readFileSync(path.join(root, "qml"
 
 const M = load("Stats.js", ["buildGrid", "summaryLine", "validColor", "palette", "parseAccounts", "parseResult",
     "errorText", "ERRORS", "DEFAULT_COLOR", "shortDay", "describe",
-    "parseDay", "commitGroups", "longDay", "daySummary", "prLine", "dayKey"]);
+    "parseDay", "commitGroups", "longDay", "daySummary", "prLine", "dayKey",
+    "levelScale", "levelOf", "legendLabels", "gridPalette", "palette", "palette2"]);
 const S = load("Schema.js", ["groups", "settingKeys", "defaults", "resolve"]);
-const T = load("Theme.js", ["parseBorder"]);
+const T = load("Theme.js", ["parseBorder", "parseNamed"]);
 
 let n = 0;
 const t = (name, fn) => { fn(); n++; console.log("  ok   " + name); };
@@ -159,6 +160,44 @@ t("the day helper refuses bad input before running anything", () => {
     assert.strictEqual(run("github", "github.com", "me", "2026-11-24; rm -rf ~"), '{"error":"bad-account"}');
     assert.strictEqual(run("github", "bad host", "me", "2026-11-24"), '{"error":"bad-account"}');
     assert.strictEqual(run("gitlab", "gitlab.com", "me", "2026-11-24"), '{"error":"unsupported"}');
+});
+
+t("shades follow quartiles of the active days, and the legend says what they mean", () => {
+    // one huge day no longer pushes everything else into the faintest shade
+    const counts = [0, 1, 1, 2, 2, 3, 4, 5, 6, 8, 46];
+    const sc = M.levelScale(counts);
+    assert.deepStrictEqual(sc, [2, 3, 5]);
+    assert.deepStrictEqual(counts.map((c) => M.levelOf(c, sc)), [0, 1, 1, 1, 1, 2, 3, 3, 4, 4, 4]);
+    assert.deepStrictEqual(M.legendLabels(sc), ["0", "1–2", "3", "4–5", "6+"]);
+    // few distinct values still give four increasing bands
+    assert.deepStrictEqual(M.levelScale([1, 1, 1]), [1, 2, 3]);
+    assert.deepStrictEqual(M.levelScale([]), [1, 2, 3]);
+    const g = M.buildGrid({ "2026-10-05": 46, "2026-10-06": 1, "2026-10-07": 2 }, new Date(2026, 9, 11, 15), 0);
+    assert.deepStrictEqual(g.legend, M.legendLabels(g.scale));
+    assert.strictEqual(g.flat.find((c) => c.date === "2026-10-06").level, 1);
+});
+
+t("grid colors come from the theme, or the custom color", () => {
+    const theme = { accent: "#8FBC8F", named: { cyan: "#4ecdc4" }, border: ["#1ee9d6", "#fe4fb6"] };
+    const cfg = (from, extra) => Object.assign({ gridColorFrom: from, gridColor: "#ff6b2c", gridThemeColor: "cyan" }, extra || {});
+    assert.deepStrictEqual(M.gridPalette(cfg("accent"), theme), M.palette("#8fbc8f"));
+    assert.deepStrictEqual(M.gridPalette(cfg("theme"), theme), M.palette("#4ecdc4"));
+    assert.deepStrictEqual(M.gridPalette(cfg("custom"), theme), M.palette("#ff6b2c"));
+    const b = M.gridPalette(cfg("border"), theme);
+    assert.strictEqual(b[3], "#fe4fb6");
+    assert.deepStrictEqual(b, M.palette2("#1ee9d6", "#fe4fb6"));
+    // missing theme pieces fall back to the custom color
+    assert.deepStrictEqual(M.gridPalette(cfg("theme", { gridThemeColor: "magenta" }), theme), M.palette("#ff6b2c"));
+    assert.deepStrictEqual(M.gridPalette(cfg("border"), { border: [] }), M.palette("#ff6b2c"));
+    assert.deepStrictEqual(M.gridPalette(cfg("accent"), { accent: "javascript:" }), M.palette("#ff6b2c"));
+    assert.deepStrictEqual(T.parseNamed('accent = "#8FBC8F"\ncyan = "#4ECDC4"\nbackground = "#1a2125"\nevil = "#ffffff"'),
+        { accent: "#8fbc8f", cyan: "#4ecdc4" });
+});
+
+t("a grid color picked before 1.4 keeps the grid on Custom", () => {
+    assert.strictEqual(S.resolve({ gridColor: "#ff6b2c" }, {}).gridColorFrom, "custom");
+    assert.strictEqual(S.resolve({}, {}).gridColorFrom, "accent");
+    assert.strictEqual(S.resolve({ gridColor: "#ff6b2c", gridColorFrom: "border" }, {}).gridColorFrom, "border");
 });
 
 t("manifest matches Schema.js", () => {

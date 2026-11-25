@@ -31,9 +31,22 @@ const groups = [
               options: ["auto", "theme", "custom"],
               labels: { auto: "Always readable", theme: "Theme", custom: "My text color" },
               hint: "Always readable keeps your theme's text color, and switches to black or white when the window is too light or too dark for it. My text color uses the Text color from Custom colors. Custom colors always use their own text color." },
-            { key: "gridColor", label: "Grid color", kind: "color", fallback: "#39d353", section: "Grid",
+            { key: "gridColorFrom", label: "Grid colors from", kind: "enum", fallback: "accent", section: "Grid",
+              options: ["accent", "border", "theme", "custom"],
+              labels: { accent: "Theme accent", border: "Window border", theme: "Theme color", custom: "Custom" },
+              hint: "Where the squares get their color, on the bar and in the grid. Theme accent and Theme color follow your Omarchy theme live. Window border blends from the first color of your theme's window border on quiet days to the last on busy ones." },
+            { key: "gridThemeColor", label: "Theme color", kind: "enum", fallback: "green", section: "Grid", control: "chips",
+              options: ["green", "cyan", "blue", "magenta", "red", "orange", "yellow",
+                        "bright_green", "bright_cyan", "bright_blue", "bright_magenta", "bright_red", "bright_yellow"],
+              labels: { green: "Green", cyan: "Cyan", blue: "Blue", magenta: "Magenta", red: "Red", orange: "Orange", yellow: "Yellow",
+                        bright_green: "Bright green", bright_cyan: "Bright cyan", bright_blue: "Bright blue",
+                        bright_magenta: "Bright magenta", bright_red: "Bright red", bright_yellow: "Bright yellow" },
+              when: [{ key: "gridColorFrom", is: ["theme"] }],
+              hint: "One of your theme's own colors, by name. A theme without that color uses the custom grid color." },
+            { key: "gridColor", label: "Custom grid color", kind: "color", fallback: "#39d353", section: "Grid",
               presets: ["#39d353", "#58a6ff", "#bc8cff", "#ff6b2c", "#f85149", "#e3b341"],
-              hint: "The color of the busiest days, on the bar and in the grid. Quieter days are darker shades of it." }
+              when: [{ key: "gridColorFrom", is: ["custom"] }],
+              hint: "The color of the busiest days. Quieter days are darker shades of it." }
         ]
     },
     {
@@ -52,7 +65,7 @@ const groups = [
             { key: "showStreaks", label: "Show streaks", kind: "bool", fallback: true, section: "Grid",
               hint: "The current and the longest streak next to the total." },
             { key: "showLegend", label: "Show the legend", kind: "bool", fallback: true, section: "Grid",
-              hint: "The Less to More row under the grid." },
+              hint: "The row under the grid showing how many contributions each color stands for." },
             { key: "showCards", label: "Show the numbers", kind: "bool", fallback: true, section: "Grid",
               hint: "Cards under the grid: contributions, active days, longest streak and busiest day." }
         ]
@@ -190,6 +203,10 @@ function resolve(saved, shell) {
     // A custom text color that was never picked follows the custom background, so a
     // light background gets dark text. A picked one is used exactly as it is.
     if (a.customFg === undefined && b.customFg === undefined) out.customFg = readableOn(out.customBg);
+    // Before gridColorFrom existed the grid always used gridColor: anyone who picked
+    // one keeps it until they choose otherwise.
+    if (a.gridColorFrom === undefined && b.gridColorFrom === undefined
+        && (a.gridColor !== undefined || b.gridColor !== undefined)) out.gridColorFrom = "custom";
     return out;
 }
 

@@ -68,6 +68,41 @@ function palette(value) {
   return [shade(base, 0.6), shade(base, 0.35), shade(base, 0.15), base]
 }
 
+// Mixes two "#rrggbb" colors: t = 0 is a, t = 1 is b.
+function mix(a, b, t) {
+  const x = parseInt(a.slice(1), 16), y = parseInt(b.slice(1), 16)
+  const ch = (sh) => Math.round(((x >> sh) & 255) * (1 - t) + ((y >> sh) & 255) * t)
+  return "#" + ((1 << 24) | (ch(16) << 16) | (ch(8) << 8) | ch(0)).toString(16).slice(1)
+}
+
+// Four levels running from `low` (quiet days, a little darkened) to `high` (busy days).
+// With a single color this is the same as palette().
+function palette2(low, high) {
+  const lo = validColor(low), hi = validColor(high)
+  if (lo === hi) return palette(hi)
+  return [shade(lo, 0.45), mix(shade(lo, 0.2), hi, 1 / 3), mix(lo, hi, 2 / 3), hi]
+}
+
+// Where the grid's colors come from (setting gridColorFrom):
+//   accent  the theme's accent
+//   border  the window border's gradient, first color for quiet days, last for busy ones
+//   theme   one of the theme's named colors (gridThemeColor)
+//   custom  gridColor
+// `theme` is { accent, named: {green: "#..", ...}, border: ["#..", ...] }; anything
+// missing falls back to the custom color.
+function gridPalette(cfg, theme) {
+  const t = theme || {}
+  const custom = validColor(cfg.gridColor)
+  const hex = (v) => typeof v === "string" && HEX_COLOR.test(v) ? v.toLowerCase() : ""
+  const from = cfg.gridColorFrom
+  if (from === "accent" && hex(t.accent)) return palette(hex(t.accent))
+  if (from === "theme" && t.named && hex(t.named[cfg.gridThemeColor])) return palette(hex(t.named[cfg.gridThemeColor]))
+  if (from === "border" && Array.isArray(t.border) && t.border.length > 0) {
+    const first = hex(t.border[0]), last = hex(t.border[t.border.length - 1])
+    if (first && last) return palette2(first, last)
+  }
+  return palette(custom)
+}
 
 function providerLabel(p) { return PROVIDERS[p] ? PROVIDERS[p].label : "Unknown" }
 function providerGlyph(p) { return PROVIDERS[p] ? PROVIDERS[p].glyph : "\uf1d3" }
@@ -160,9 +195,9 @@ function buildGrid(days, now, year) {
   // A label in the last two columns would run past the right edge.
   while (months.length > 0 && months[months.length - 1].col > cols.length - 2) months.pop()
 
+  const scale = levelScale(flat.map(c => c.count))
   let i
-  for (i = 0; i < flat.length; i++)
-    flat[i].level = flat[i].count <= 0 ? 0 : Math.min(4, Math.ceil(4 * flat[i].count / max))
+  for (i = 0; i < flat.length; i++) flat[i].level = levelOf(flat[i].count, scale)
 
   let longest = 0, run = 0, busiest = null
   for (i = 0; i < flat.length; i++) {
@@ -175,9 +210,36 @@ function buildGrid(days, now, year) {
   if (i >= 0 && flat[i].count === 0) i--   // today may simply not have happened yet
   for (; i >= 0 && flat[i].count > 0; i--) current++
 
-  return { year: y, showCurrent: !y || y === today.getFullYear(), cols: cols, flat: flat, months: months, total: total, max: max, current: current, longest: longest, busiest: busiest }
+  return { year: y, showCurrent: !y || y === today.getFullYear(), cols: cols, flat: flat, months: months, total: total, max: max, current: current, longest: longest, busiest: busiest, scale: scale, legend: legendLabels(scale) }
 }
 
+// The shades follow your own activity: like GitHub's graph, each of the four colors
+// covers about a quarter of the days you were active (quartiles of the non-zero
+// days), so one huge day doesn't wash out the rest. Returns the upper bounds of
+// levels 1-3; level 4 is everything above the last one.
+function levelScale(counts) {
+  const active = counts.filter(c => c > 0).sort((a, b) => a - b)
+  if (active.length === 0) return [1, 2, 3]
+  const q = (p) => active[Math.floor(p * (active.length - 1))]
+  const t1 = Math.max(1, q(0.25))
+  const t2 = Math.max(t1 + 1, q(0.5))
+  const t3 = Math.max(t2 + 1, q(0.75))
+  return [t1, t2, t3]
+}
+
+function levelOf(count, scale) {
+  if (count <= 0) return 0
+  if (count <= scale[0]) return 1
+  if (count <= scale[1]) return 2
+  if (count <= scale[2]) return 3
+  return 4
+}
+
+// What each color stands for: ["0", "1-2", "3-5", "6-11", "12+"]
+function legendLabels(scale) {
+  const range = (lo, hi) => lo === hi ? String(lo) : lo + "\u2013" + hi
+  return ["0", range(1, scale[0]), range(scale[0] + 1, scale[1]), range(scale[1] + 1, scale[2]), (scale[2] + 1) + "+"]
+}
 
 function summaryLine(grid, streaks) {
   let s = grid.total + (grid.total === 1 ? " contribution" : " contributions")

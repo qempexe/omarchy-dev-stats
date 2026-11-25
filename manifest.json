@@ -31,6 +31,8 @@
       "customFg": "#e0e0e0",
       "accentColor": "#7aa2f7",
       "textColor": "auto",
+      "gridColorFrom": "accent",
+      "gridThemeColor": "green",
       "gridColor": "#39d353",
       "cardStyle": "soft",
       "density": "comfortable",
@@ -104,11 +106,46 @@
         ]
       },
       {
+        "key": "gridColorFrom",
+        "type": "enum",
+        "label": "Grid colors from",
+        "defaultValue": "accent",
+        "description": "Where the squares get their color, on the bar and in the grid. Theme accent and Theme color follow your Omarchy theme live. Window border blends from the first color of your theme's window border on quiet days to the last on busy ones.",
+        "options": [
+          "accent",
+          "border",
+          "theme",
+          "custom"
+        ]
+      },
+      {
+        "key": "gridThemeColor",
+        "type": "enum",
+        "label": "Theme color",
+        "defaultValue": "green",
+        "description": "One of your theme's own colors, by name. A theme without that color uses the custom grid color.",
+        "options": [
+          "green",
+          "cyan",
+          "blue",
+          "magenta",
+          "red",
+          "orange",
+          "yellow",
+          "bright_green",
+          "bright_cyan",
+          "bright_blue",
+          "bright_magenta",
+          "bright_red",
+          "bright_yellow"
+        ]
+      },
+      {
         "key": "gridColor",
         "type": "string",
-        "label": "Grid color",
+        "label": "Custom grid color",
         "defaultValue": "#39d353",
-        "description": "The color of the busiest days, on the bar and in the grid. Quieter days are darker shades of it."
+        "description": "The color of the busiest days. Quieter days are darker shades of it."
       },
       {
         "key": "cardStyle",
@@ -166,7 +203,7 @@
         "type": "boolean",
         "label": "Show the legend",
         "defaultValue": true,
-        "description": "The Less to More row under the grid."
+        "description": "The row under the grid showing how many contributions each color stands for."
       },
       {
         "key": "showCards",

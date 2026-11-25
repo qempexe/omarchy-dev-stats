@@ -25,6 +25,21 @@ function parsePalette(text) {
     return out.slice(0, 12);
 }
 
+// The colors a grid can take from the theme, by name. Only these names are read.
+const NAMED = ["accent", "green", "cyan", "blue", "magenta", "red", "orange", "yellow",
+               "bright_green", "bright_cyan", "bright_blue", "bright_magenta", "bright_red", "bright_yellow"];
+
+// colors.toml -> { accent: "#8fbc8f", green: "#8fbc8f", ... } for the names above
+function parseNamed(text) {
+    const out = {};
+    if (typeof text !== "string" || text.length > 65536) return out;
+    for (const line of text.split("\n")) {
+        const m = /^\s*([a-z_]+)\s*=\s*["']?(#[0-9a-fA-F]{6})["']?\s*$/.exec(line);
+        if (m && NAMED.indexOf(m[1]) >= 0) out[m[1]] = m[2].toLowerCase();
+    }
+    return out;
+}
+
 // The active window border, often a gradient:
 //   hyprland.lua:   local active_border_color = { colors = { "rgba(1ee9d6ee)", "rgba(fe4fb6ee)" }, angle = 45 }
 //   hyprland.conf:  col.active_border = rgba(33ccffee) rgba(00ff99ee) 45deg

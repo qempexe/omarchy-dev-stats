@@ -13,6 +13,17 @@ All notable changes to Dev Stats. The format follows
   any branch, grouped by repository. Feature-branch commits show up here even though
   GitHub's own graph doesn't count them. Click a row to open it on GitHub; click the day
   again, or Close, to put it away.
+- **Grid colors from**: the squares can follow your theme. Pick its accent, a blend of
+  its window border colors, or one of its named colors (green, cyan, magenta …), or
+  keep a custom color. A grid color picked before stays in use (Custom).
+
+### Changed
+
+- The shades follow your own activity: each of the four colors covers about a quarter
+  of the days you were active (quartiles, as on GitHub's graph), instead of a share of
+  your busiest day, so one huge day no longer leaves everything else in the faintest
+  shade. The legend shows what each color stands for (`0 · 1–2 · 3–5 · 6+` a day)
+  instead of Less and More.
 
 ## [1.3.2] - 2026-11-05
 

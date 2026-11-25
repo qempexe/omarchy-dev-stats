@@ -82,7 +82,13 @@ BarWidget {
         while (days.length < cfg.days) days.unshift({ level: 0, count: 0 })
         return days
     }
-    readonly property var palette: Model.palette(cfg.gridColor)
+    // the grid's four colors, from the theme or the custom color (gridColorFrom)
+    property var themeNamed: ({})
+    readonly property var gridPalette: Model.gridPalette(cfg, {
+        accent: themeNamed.accent || (shellAccent ? String(shellAccent).slice(0, 7) : ""),
+        named: themeNamed,
+        border: borderColors
+    })
 
     // opening a link: only plain https addresses, through xdg-open
     function openUrl(url) {
@@ -306,8 +312,12 @@ BarWidget {
         path: root.themeDir !== "" ? root.themeDir + "/colors.toml" : ""
         watchChanges: true
         onFileChanged: reload()
-        onLoaded: root.tomlBorder = Theme.parseBorder(root.readText(paletteFile))
-        onLoadFailed: { root.tomlBorder = ({ colors: [], angle: 0 }); root.retryTheme() }
+        onLoaded: {
+            const text = root.readText(paletteFile)
+            root.tomlBorder = Theme.parseBorder(text)
+            root.themeNamed = Theme.parseNamed(text)
+        }
+        onLoadFailed: { root.tomlBorder = ({ colors: [], angle: 0 }); root.themeNamed = ({}); root.retryTheme() }
     }
     FileView {
         id: borderLua
@@ -643,7 +653,7 @@ BarWidget {
                     width: root.square
                     height: root.square
                     radius: Math.min(root.square / 2, Style.space(root.cfg.squareRound))
-                    color: modelData.level <= 0 ? Qt.alpha(root.barFg, 0.18) : root.palette[modelData.level - 1]
+                    color: modelData.level <= 0 ? Qt.alpha(root.barFg, 0.18) : root.gridPalette[modelData.level - 1]
                 }
             }
         }

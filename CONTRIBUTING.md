@@ -43,7 +43,7 @@ JSON), add the name to the `provider` checks there, and add a label and a glyph 
 - Anything from outside is checked before it's used: accounts through
   `Stats.parseAccounts()`, results through `Stats.parseResult()`, a day's commits and
   pull requests through `Stats.parseDay()`, settings through `Schema.resolve()`, theme
-  files through `Theme.parseBorder()`.
+  files through `Theme.parseBorder()` and `Theme.parseNamed()`.
 - Tokens are never read, printed or stored. `bin/dev-stats.sh` reads only host and
   account names from the CLI configs, checks them before they reach a command line, and
   prints only fixed error codes, never a remote error text.
