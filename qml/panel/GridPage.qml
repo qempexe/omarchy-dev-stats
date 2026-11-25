@@ -20,7 +20,7 @@ Flickable {
     readonly property var result: stats && account ? stats.results[Model.resultKey(account, year)] : null
     readonly property bool hasData: result !== null && result !== undefined && result.error === undefined
     readonly property var grid: Model.buildGrid(hasData ? result.days : ({}), new Date(), year)
-    readonly property var palette: Model.palette(cfg.gridColor)
+    readonly property var palette: stats ? stats.gridPalette : Model.palette(cfg.gridColor)
     property string hoverText: ""
     readonly property int activeDays: {
         let n = 0
@@ -214,14 +214,19 @@ Flickable {
                                         radius: gridBox.radius
                                         color: root.levelColor(modelData.level)
                                         opacity: modelData.skip ? 0 : 1
-                                        border.width: hover.containsMouse ? 1 : 0
-                                        border.color: ui.fg
+                                        readonly property bool picked: !modelData.skip && root.stats
+                                            && root.stats.selectedDay === modelData.date
+                                        border.width: picked ? 2 : (hover.containsMouse ? 1 : 0)
+                                        border.color: picked ? ui.accent : ui.fg
                                         MouseArea {
                                             id: hover
                                             anchors.fill: parent
+                                            enabled: !day.modelData.skip
                                             hoverEnabled: !day.modelData.skip
+                                            cursorShape: Qt.PointingHandCursor
                                             onEntered: root.hoverText = Model.describe(day.modelData)
                                             onExited: root.hoverText = ""
+                                            onClicked: if (root.stats) root.stats.selectDay(day.modelData.date)
                                         }
                                     }
                                 }
@@ -230,24 +235,39 @@ Flickable {
                     }
                 }
 
-                // Less … More
-                Row {
+                // what each color stands for: 0, 1–2, 3–5 … contributions a day
+                Flow {
+                    Layout.fillWidth: true
                     Layout.leftMargin: gridBox.lw
-                    spacing: ui.px(4)
+                    spacing: ui.px(10)
                     visible: root.hasData && root.cfg.showLegend
-                    Txt { ui: root.ui; anchors.verticalCenter: parent.verticalCenter; text: "Less"; opacity: 0.6; font.pixelSize: ui.fs(9) }
                     Repeater {
                         model: 5
-                        delegate: Rectangle {
+                        delegate: Row {
                             required property int index
-                            anchors.verticalCenter: parent.verticalCenter
-                            width: gridBox.cell
-                            height: gridBox.cell
-                            radius: gridBox.radius
-                            color: root.levelColor(index)
+                            spacing: ui.px(4)
+                            Rectangle {
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: gridBox.cell
+                                height: gridBox.cell
+                                radius: gridBox.radius
+                                color: root.levelColor(index)
+                            }
+                            Txt {
+                                ui: root.ui
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: root.grid.legend ? root.grid.legend[index] : ""
+                                opacity: 0.6
+                                font.pixelSize: ui.fs(9)
+                            }
                         }
                     }
-                    Txt { ui: root.ui; anchors.verticalCenter: parent.verticalCenter; text: "More"; opacity: 0.6; font.pixelSize: ui.fs(9) }
+                    Txt {
+                        ui: root.ui
+                        text: "a day"
+                        opacity: 0.45
+                        font.pixelSize: ui.fs(9)
+                    }
                 }
 
                 // the day under the mouse, or when the numbers were fetched
@@ -255,12 +275,20 @@ Flickable {
                     ui: root.ui
                     Layout.fillWidth: true
                     visible: root.hasData
-                    text: root.hoverText !== "" ? root.hoverText : (root.stats ? root.stats.updatedText : "")
+                    text: root.hoverText !== "" ? root.hoverText + "  ·  click for details"
+                        : (root.stats ? root.stats.updatedText : "")
                     elide: Text.ElideRight
                     opacity: 0.6
                     font.pixelSize: ui.fs(10)
                 }
             }
+        }
+
+        // the day picked on the grid
+        DayCard {
+            ui: root.ui
+            Layout.fillWidth: true
+            visible: root.hasData && !!root.stats && root.stats.selectedDay !== ""
         }
 
         // a few numbers from the year

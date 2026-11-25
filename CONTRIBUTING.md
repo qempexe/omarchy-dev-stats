@@ -9,10 +9,12 @@ qml/BarWidget.qml        the bar squares and clicks, fetching and holding the re
 qml/core/UiState.qml     colors, spacing and the open tab, shared by both windows (`ui.*`)
 qml/panel/StatsView.qml  the window: header, tabs, Grid, Settings, footer
 qml/panel/GridPage.qml   the accounts, the years, the grid and its numbers
+qml/panel/DayCard.qml    the day picked on the grid: its pull requests and commits (DayRow.qml)
 qml/panel/SettingRow.qml one setting, drawn from its Schema.js entry
 qml/js/Schema.js         every setting, in the tabs and order the Settings tab shows
 qml/js/Stats.js          pure logic: the grid, streaks, colors, and cleaning what comes in
-bin/dev-stats.sh         account discovery and fetching (gh, glab, tea, fj, curl)
+bin/dev-stats.sh         account discovery and fetching (gh, glab, tea, fj, curl), and
+                         one day's commits and pull requests (`day`, GitHub only)
 ```
 
 ## A new setting
@@ -39,8 +41,9 @@ JSON), add the name to the `provider` checks there, and add a label and a glyph 
 
 - `qml/js/Stats.js` and `qml/js/Schema.js` stay pure: no Qt, so the tests run in node.
 - Anything from outside is checked before it's used: accounts through
-  `Stats.parseAccounts()`, results through `Stats.parseResult()`, settings through
-  `Schema.resolve()`, theme files through `Theme.parseBorder()`.
+  `Stats.parseAccounts()`, results through `Stats.parseResult()`, a day's commits and
+  pull requests through `Stats.parseDay()`, settings through `Schema.resolve()`, theme
+  files through `Theme.parseBorder()` and `Theme.parseNamed()`.
 - Tokens are never read, printed or stored. `bin/dev-stats.sh` reads only host and
   account names from the CLI configs, checks them before they reach a command line, and
   prints only fixed error codes, never a remote error text.

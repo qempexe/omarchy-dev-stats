@@ -46,6 +46,16 @@ BarWidget {
     property real updatedAt: 0
     property int fetchIndex: 0
 
+    // one day's commits and pull requests (the Grid tab's day card)
+    property var dayResults: ({})         // Model.dayKey(account, date) -> parsed day
+    property string selectedDay: ""       // "YYYY-MM-DD", or "" for none
+    property var dayReq: null             // pending day fetch
+    property var dayRunning: null         // day fetch in flight
+    readonly property var currentDay: current && selectedDay !== ""
+        ? (dayResults[Model.dayKey(current, selectedDay)] || null) : null
+    readonly property bool dayLoading: !!current && selectedDay !== ""
+        && (currentDay === null || (dayRunning !== null && dayRunning.key === Model.dayKey(current, selectedDay)))
+
     readonly property string scriptPath: decodeURIComponent(
         String(Qt.resolvedUrl("../bin/dev-stats.sh")).replace(/^file:\/\//, ""))
 
@@ -72,7 +82,13 @@ BarWidget {
         while (days.length < cfg.days) days.unshift({ level: 0, count: 0 })
         return days
     }
-    readonly property var palette: Model.palette(cfg.gridColor)
+    // the grid's four colors, from the theme or the custom color (gridColorFrom)
+    property var themeNamed: ({})
+    readonly property var gridPalette: Model.gridPalette(cfg, {
+        accent: themeNamed.accent || (shellAccent ? String(shellAccent).slice(0, 7) : ""),
+        named: themeNamed,
+        border: borderColors
+    })
 
     // opening a link: only plain https addresses, through xdg-open
     function openUrl(url) {
@@ -90,6 +106,8 @@ BarWidget {
         const keep = {}
         for (const k in results) if (k.split("|").length === 3) keep[k] = results[k]
         results = keep
+        dayResults = ({})
+        if (selectedDay !== "") selectDay(selectedDay, true)
         watchdog.restart()
         listProc.running = true
     }
@@ -105,6 +123,41 @@ BarWidget {
     function selectAccount(i) {
         selected = i
         selectedYear = 0
+        selectedDay = ""
+    }
+
+    // Show one day's commits and pull requests. Clicking the open day again closes it.
+    function selectDay(date, keep) {
+        if (!current || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return
+        if (!keep && date === selectedDay) { selectedDay = ""; return }
+        selectedDay = date
+        const key = Model.dayKey(current, date)
+        const have = dayResults[key]
+        if (have && have.error === undefined) return
+        dayReq = { key: key, account: current, date: date }
+        dayTimer.restart()
+    }
+    function closeDay() { selectedDay = "" }
+
+    function launchDay() {
+        if (!dayReq) return
+        if (dayProc.running) { dayTimer.restart(); return }
+        dayRunning = dayReq
+        dayReq = null
+        const a = dayRunning.account
+        dayProc.command = ["bash", scriptPath, "day", a.provider, a.host, a.user, dayRunning.date]
+        dayProc.running = true
+    }
+
+    function onDayFetched(text) {
+        const q = dayRunning
+        dayRunning = null
+        if (q) {
+            const next = Object.assign({}, dayResults)
+            next[q.key] = Model.parseDay(text, q.date)
+            dayResults = next
+        }
+        if (dayReq) dayTimer.restart()
     }
 
     function selectYear(y) {
@@ -201,6 +254,12 @@ BarWidget {
 
     Timer { id: yearTimer; interval: 60; onTriggered: root.launchYear() }
 
+    Process {
+        id: dayProc
+        stdout: StdioCollector { onStreamFinished: root.onDayFetched(text) }
+    }
+    Timer { id: dayTimer; interval: 60; onTriggered: root.launchDay() }
+
     // Lets a finished process fully exit before the next one is started.
     Timer { id: stepTimer; interval: 60; onTriggered: root.fetchNext() }
 
@@ -253,8 +312,12 @@ BarWidget {
         path: root.themeDir !== "" ? root.themeDir + "/colors.toml" : ""
         watchChanges: true
         onFileChanged: reload()
-        onLoaded: root.tomlBorder = Theme.parseBorder(root.readText(paletteFile))
-        onLoadFailed: { root.tomlBorder = ({ colors: [], angle: 0 }); root.retryTheme() }
+        onLoaded: {
+            const text = root.readText(paletteFile)
+            root.tomlBorder = Theme.parseBorder(text)
+            root.themeNamed = Theme.parseNamed(text)
+        }
+        onLoadFailed: { root.tomlBorder = ({ colors: [], angle: 0 }); root.themeNamed = ({}); root.retryTheme() }
     }
     FileView {
         id: borderLua
@@ -590,7 +653,7 @@ BarWidget {
                     width: root.square
                     height: root.square
                     radius: Math.min(root.square / 2, Style.space(root.cfg.squareRound))
-                    color: modelData.level <= 0 ? Qt.alpha(root.barFg, 0.18) : root.palette[modelData.level - 1]
+                    color: modelData.level <= 0 ? Qt.alpha(root.barFg, 0.18) : root.gridPalette[modelData.level - 1]
                 }
             }
         }
