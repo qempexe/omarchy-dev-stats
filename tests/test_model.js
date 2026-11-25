@@ -7,7 +7,8 @@ const load = (file, names) => new Function(fs.readFileSync(path.join(root, "qml"
     .replace(/^\.pragma.*$/m, "") + "; return { " + names.join(", ") + " };")();
 
 const M = load("Stats.js", ["buildGrid", "summaryLine", "validColor", "palette", "parseAccounts", "parseResult",
-    "errorText", "ERRORS", "DEFAULT_COLOR", "shortDay", "describe"]);
+    "errorText", "ERRORS", "DEFAULT_COLOR", "shortDay", "describe",
+    "parseDay", "commitGroups", "longDay", "daySummary", "prLine", "dayKey"]);
 const S = load("Schema.js", ["groups", "settingKeys", "defaults", "resolve"]);
 const T = load("Theme.js", ["parseBorder"]);
 
@@ -107,6 +108,57 @@ t("text is drawn plain, and no native text field reads the clipboard", () => {
         assert.ok(!src.includes("import QtQuick.Controls"), f + " imports QtQuick.Controls");
         assert.ok(!/Text\.(RichText|StyledText|AutoText)/.test(src), f + " allows markup");
     }
+});
+
+t("a day's commits and pull requests are cleaned before they are shown", () => {
+    const raw = {
+        date: "2026-11-24", partial: true,
+        commits: [
+            { repo: "acme/web", branch: "feat/x", sha: "65fc9b2e38f46eba7b44d57954b30cbaa842ecfb",
+              title: "web: split‮ the table", url: "https://github.com/acme/web/commit/65fc9b2", at: "2026-11-25T02:27:37Z" },
+            { repo: "acme/web", branch: "main", sha: "bcb6b7f0", title: "older", url: "https://github.com/acme/web/commit/bcb6b7f0", at: "2026-11-24T17:41:49Z" },
+            { repo: "acme/api", branch: "main", sha: "aaaaaaa", title: "<img src=https://x.invalid/t>", url: "javascript:alert(1)", at: "nope" },
+            { repo: "../../etc", branch: "main", sha: "bbbbbbb", title: "bad repo", url: "", at: "" },
+            { repo: "acme/web", branch: "main", sha: "not-a-sha", title: "bad sha", url: "", at: "" }
+        ],
+        prs: [
+            { repo: "acme/web", number: 12, title: "Add a thing", url: "https://github.com/acme/web/pull/12", state: "MERGED", event: "opened,merged" },
+            { repo: "acme/web", number: 1.5, title: "bad number", url: "", state: "OPEN", event: "opened" },
+            { repo: "acme/web", number: 13, title: "", url: "http://github.com/acme/web/pull/13", state: "WEIRD", event: "opened" }
+        ]
+    };
+    const d = M.parseDay(JSON.stringify(raw), "2026-11-24");
+    assert.strictEqual(d.commits.length, 3);
+    assert.deepStrictEqual(d.commits.map((c) => c.sha), ["65fc9b2", "bcb6b7f", "aaaaaaa"]);   // newest first, bad time last
+    assert.strictEqual(d.commits[0].title, "web: split the table");                       // bidi override gone
+    assert.strictEqual(d.commits[2].url, "");                                              // no javascript: links
+    assert.strictEqual(d.commits[2].at, "");
+    assert.strictEqual(d.prs.length, 2);
+    assert.deepStrictEqual([d.prs[0].opened, d.prs[0].merged, d.prs[0].state], [true, true, "merged"]);
+    assert.deepStrictEqual([d.prs[1].title, d.prs[1].url, d.prs[1].state], ["(no title)", "", ""]);  // http refused
+    assert.strictEqual(d.partial, true);
+    assert.strictEqual(M.prLine(d.prs[0]), "acme/web  ·  opened and merged");
+    assert.strictEqual(M.daySummary(d), "3 commits  ·  2 pull requests");
+    const g = M.commitGroups(d.commits);
+    assert.deepStrictEqual(g.map((x) => [x.repo, x.commits.length]), [["acme/web", 2], ["acme/api", 1]]);
+});
+
+t("a day result for another date, or an error, is not shown as data", () => {
+    assert.deepStrictEqual(M.parseDay('{"date":"2026-11-23","commits":[],"prs":[]}', "2026-11-24"), { error: "bad-response" });
+    assert.deepStrictEqual(M.parseDay('{"error":"unsupported"}', "2026-11-24"), { error: "unsupported" });
+    assert.deepStrictEqual(M.parseDay('{"error":"<b>boom</b>"}', "2026-11-24"), { error: "request-failed" });
+    assert.deepStrictEqual(M.parseDay("not json", "2026-11-24"), { error: "bad-response" });
+    assert.strictEqual(M.longDay("2026-11-24"), "Tue, 24 Nov 2026");
+    assert.strictEqual(M.longDay("24/11/2026"), "");
+    assert.strictEqual(M.dayKey({ provider: "github", host: "github.com", user: "me" }, "2026-11-24"), "github|github.com|me|2026-11-24");
+});
+
+t("the day helper refuses bad input before running anything", () => {
+    const run = (...a) => cp.spawnSync("bash", [path.join(root, "bin", "dev-stats.sh"), "day", ...a], { encoding: "utf8" }).stdout.trim();
+    assert.strictEqual(run("github", "github.com", "me", "2026-13-01"), '{"error":"bad-account"}');
+    assert.strictEqual(run("github", "github.com", "me", "2026-11-24; rm -rf ~"), '{"error":"bad-account"}');
+    assert.strictEqual(run("github", "bad host", "me", "2026-11-24"), '{"error":"bad-account"}');
+    assert.strictEqual(run("gitlab", "gitlab.com", "me", "2026-11-24"), '{"error":"unsupported"}');
 });
 
 t("manifest matches Schema.js", () => {

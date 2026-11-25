@@ -214,14 +214,19 @@ Flickable {
                                         radius: gridBox.radius
                                         color: root.levelColor(modelData.level)
                                         opacity: modelData.skip ? 0 : 1
-                                        border.width: hover.containsMouse ? 1 : 0
-                                        border.color: ui.fg
+                                        readonly property bool picked: !modelData.skip && root.stats
+                                            && root.stats.selectedDay === modelData.date
+                                        border.width: picked ? 2 : (hover.containsMouse ? 1 : 0)
+                                        border.color: picked ? ui.accent : ui.fg
                                         MouseArea {
                                             id: hover
                                             anchors.fill: parent
+                                            enabled: !day.modelData.skip
                                             hoverEnabled: !day.modelData.skip
+                                            cursorShape: Qt.PointingHandCursor
                                             onEntered: root.hoverText = Model.describe(day.modelData)
                                             onExited: root.hoverText = ""
+                                            onClicked: if (root.stats) root.stats.selectDay(day.modelData.date)
                                         }
                                     }
                                 }
@@ -255,12 +260,20 @@ Flickable {
                     ui: root.ui
                     Layout.fillWidth: true
                     visible: root.hasData
-                    text: root.hoverText !== "" ? root.hoverText : (root.stats ? root.stats.updatedText : "")
+                    text: root.hoverText !== "" ? root.hoverText + "  ·  click for details"
+                        : (root.stats ? root.stats.updatedText : "")
                     elide: Text.ElideRight
                     opacity: 0.6
                     font.pixelSize: ui.fs(10)
                 }
             }
+        }
+
+        // the day picked on the grid
+        DayCard {
+            ui: root.ui
+            Layout.fillWidth: true
+            visible: root.hasData && !!root.stats && root.stats.selectedDay !== ""
         }
 
         // a few numbers from the year

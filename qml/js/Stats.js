@@ -17,7 +17,8 @@ const ERRORS = {
   "no-cli": "The command-line tool for this platform is not installed.",
   "request-failed": "Request failed. Check your login, profile visibility or network.",
   "bad-response": "The platform returned something unexpected.",
-  "bad-account": "Invalid account entry."
+  "bad-account": "Invalid account entry.",
+  "unsupported": "Day details are only available for GitHub accounts so far."
 }
 
 const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/
@@ -66,6 +67,7 @@ function palette(value) {
   const base = validColor(value)
   return [shade(base, 0.6), shade(base, 0.35), shade(base, 0.15), base]
 }
+
 
 function providerLabel(p) { return PROVIDERS[p] ? PROVIDERS[p].label : "Unknown" }
 function providerGlyph(p) { return PROVIDERS[p] ? PROVIDERS[p].glyph : "\uf1d3" }
@@ -176,6 +178,7 @@ function buildGrid(days, now, year) {
   return { year: y, showCurrent: !y || y === today.getFullYear(), cols: cols, flat: flat, months: months, total: total, max: max, current: current, longest: longest, busiest: busiest }
 }
 
+
 function summaryLine(grid, streaks) {
   let s = grid.total + (grid.total === 1 ? " contribution" : " contributions")
   s += grid.year ? " in " + grid.year : " in the last year"
@@ -194,4 +197,102 @@ function shortDay(cell) {
 
 function describe(cell) {
   return cell.count + (cell.count === 1 ? " contribution" : " contributions") + " on " + cell.when
+}
+
+// ---- one day: commits and pull requests (bin/dev-stats.sh day) -----------------
+
+const MAX_COMMITS = 200
+const MAX_PRS = 100
+const REPO_NAME = /^[A-Za-z0-9_.-]{1,100}\/[A-Za-z0-9_.-]{1,100}$/
+const SHA = /^[0-9a-f]{7,64}$/
+// Same rule as BarWidget.openUrl: plain https links only.
+const SAFE_URL = /^https:\/\/[A-Za-z0-9.-]+(\/[A-Za-z0-9._~%!$&'()*+,;=:@\/?#-]*)?$/
+
+function dayKey(a, date) { return accountKey(a) + "|" + date }
+
+function safeUrl(u) {
+  return typeof u === "string" && u.length <= 300 && SAFE_URL.test(u) ? u : ""
+}
+
+// "21:27" in local time, or "" for anything that isn't a date
+function clock(iso) {
+  const t = Date.parse(iso)
+  if (!isFinite(t)) return ""
+  const d = new Date(t)
+  return pad(d.getHours()) + ":" + pad(d.getMinutes())
+}
+
+function parseDay(text, date) {
+  let raw
+  try { raw = JSON.parse(text) } catch (e) { return { error: "bad-response" } }
+  if (!raw || typeof raw !== "object") return { error: "bad-response" }
+  if (raw.error !== undefined) return { error: ERRORS[raw.error] ? raw.error : "request-failed" }
+  if (!Array.isArray(raw.commits) || !Array.isArray(raw.prs)) return { error: "bad-response" }
+  if (raw.date !== date) return { error: "bad-response" }
+
+  const commits = []
+  for (let i = 0; i < raw.commits.length && commits.length < MAX_COMMITS; i++) {
+    const c = raw.commits[i]
+    if (!c || typeof c !== "object" || typeof c.repo !== "string" || !REPO_NAME.test(c.repo)) continue
+    if (typeof c.sha !== "string" || !SHA.test(c.sha)) continue
+    commits.push({
+      repo: c.repo,
+      branch: clean(c.branch, 120),
+      sha: c.sha.slice(0, 7),
+      title: clean(c.title, 200) || "(no message)",
+      url: safeUrl(c.url),
+      at: clock(c.at),
+      time: isFinite(Date.parse(c.at)) ? Date.parse(c.at) : 0
+    })
+  }
+  commits.sort((p, q) => q.time - p.time)
+
+  const prs = []
+  for (let j = 0; j < raw.prs.length && prs.length < MAX_PRS; j++) {
+    const r = raw.prs[j]
+    if (!r || typeof r !== "object" || typeof r.repo !== "string" || !REPO_NAME.test(r.repo)) continue
+    const num = r.number
+    if (typeof num !== "number" || num !== Math.floor(num) || num < 1 || num > 1e9) continue
+    const ev = typeof r.event === "string" ? r.event.split(",") : []
+    const state = ["OPEN", "CLOSED", "MERGED"].indexOf(r.state) >= 0 ? r.state.toLowerCase() : ""
+    prs.push({
+      repo: r.repo,
+      number: num,
+      title: clean(r.title, 200) || "(no title)",
+      url: safeUrl(r.url),
+      opened: ev.indexOf("opened") >= 0,
+      merged: ev.indexOf("merged") >= 0,
+      state: state
+    })
+  }
+
+  return { date: date, commits: commits, prs: prs, partial: raw.partial === true, fetchedAt: Date.now() }
+}
+
+// Commits grouped by repository, the busiest repository first.
+function commitGroups(commits) {
+  const by = {}, order = []
+  for (const c of commits || []) {
+    if (!by[c.repo]) { by[c.repo] = []; order.push(c.repo) }
+    by[c.repo].push(c)
+  }
+  return order.map(r => ({ repo: r, commits: by[r] })).sort((p, q) => q.commits.length - p.commits.length)
+}
+
+// "Tue, 24 Nov 2026"
+function longDay(date) {
+  if (!ISO_DAY.test(date)) return ""
+  const p = date.split("-")
+  const d = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]), 12)
+  return WEEKDAYS[d.getDay()] + ", " + d.getDate() + " " + MONTHS[d.getMonth()] + " " + d.getFullYear()
+}
+
+function daySummary(day) {
+  const c = day.commits.length, r = day.prs.length
+  return c + (c === 1 ? " commit" : " commits") + "  ·  " + r + (r === 1 ? " pull request" : " pull requests")
+}
+
+function prLine(pr) {
+  const what = pr.opened && pr.merged ? "opened and merged" : (pr.merged ? "merged" : "opened")
+  return pr.repo + "  ·  " + what + (pr.state === "open" ? "  ·  still open" : "")
 }

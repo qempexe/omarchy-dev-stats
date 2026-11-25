@@ -4,6 +4,16 @@ All notable changes to Dev Stats. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- **Day details**: click a day on the grid to see what you did that day, GitHub only for
+  now. It lists the pull requests you opened or merged, and the commits you pushed on
+  any branch, grouped by repository. Feature-branch commits show up here even though
+  GitHub's own graph doesn't count them. Click a row to open it on GitHub; click the day
+  again, or Close, to put it away.
+
 ## [1.3.2] - 2026-11-05
 
 ### Fixed
